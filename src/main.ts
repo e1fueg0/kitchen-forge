@@ -1,20 +1,113 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
+import {App, Editor, MarkdownView, Modal, Notice, Plugin, TextComponent} from 'obsidian';
+import YAML from "yaml";
+import jsep from "jsep";
 import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
 
 // Remember to rename these classes and interfaces!
 
-export default class MyPlugin extends Plugin {
+type Ingredient = {
+	name: string;
+	id?: string;
+	value?: number;
+	calc?: string;
+	unit?: string;
+};
+
+type Section = {
+	name: string;
+	items: Ingredient[];
+};
+
+type Recipe = {
+	unit: string;
+	sections: Section[];
+};
+
+type Vars = Record<string, number>;
+
+type CalcBinding = {
+	expr: string;
+	el: HTMLElement;
+};
+
+export default class HelloWorldPlugin extends Plugin {
 	settings: MyPluginSettings;
 
 	async onload() {
+		jsep.addBinaryOp('@', 10);
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
+		// // This creates an icon in the left ribbon.
+		// this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
+		// 	// Called when the user clicks the icon.
+		// 	new Notice('This is a notice!');
+		// });
+		// this.addRibbonIcon('dice', 'Greet', () => {
+		// 	new Notice('Hello, world!');
+		// });
+		this.registerMarkdownCodeBlockProcessor('kitchenforge', (source, el, ctx) => {
+			const recipe = YAML.parse(source) as Recipe;
 
+			const vars: Vars = {};
+			const bindings: CalcBinding[] = [];
+
+			try {
+				for (const section of recipe.sections) {
+					for (const item of section.items) {
+						if (item.id && item.value != null) {
+							vars[item.id] = item.value;
+						}
+					}
+				}
+
+				const blockEl = el.createDiv({ cls: "kf-block" });
+				for (const section of recipe.sections) {
+					blockEl.createEl('h3', {text: section.name});
+					const listEl = blockEl.createEl('ol');
+					for (const item of section.items) {
+						const itemEl = listEl.createEl('li');
+						itemEl.createSpan({text: `${item.name}: `});
+						const bEl = itemEl.createEl('b');
+
+						const unit = item.unit ? item.unit : recipe.unit;
+						let value: number | undefined;
+						let expr = item.calc;
+						if (expr) {
+							value = evaluate(jsep(expr), vars);
+							const valueEl = bEl.createSpan({text: String(value)});
+							bindings.push({expr: expr, el: valueEl});
+						} else if (!item.id) {
+							value = item.value;
+							bEl.createSpan({text: `${value}`});
+						} else {
+							value = item.value;
+							const input = new TextComponent(bEl);
+							input.inputEl.type = "number";
+							input.setValue(`${value}`);
+							input.inputEl.style.width = "10ch";
+							input.onChange(value => {
+								console.log(`Calc: ${item.id} -> ${value}`);
+								vars[item.id] = Number(value);
+								console.log(" !! " + JSON.stringify(vars));
+								for (const binding of bindings) {
+									const calculated = evaluate(jsep(binding.expr), vars);
+									console.log(` !! ${binding.expr} -> ${calculated}`);
+									console.log("EXPR", binding.expr);
+									console.log("AST", jsep(binding.expr));
+									console.log("VARS", vars);
+									binding.el.setText(`${calculated}`);
+								}
+							});
+						}
+
+						bEl.createEl('span', {text: ` ${unit}`});
+					}
+				}
+			} catch (e) {
+				el.createEl('p', {text: 'Error parsing recipe: ' + e.message});
+				return;
+			}
+		});
 		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
 		const statusBarItemEl = this.addStatusBarItem();
 		statusBarItemEl.setText('Status bar text');
@@ -61,9 +154,9 @@ export default class MyPlugin extends Plugin {
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			new Notice("Click");
-		});
+		// this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
+		// 	new Notice("Click");
+		// });
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
@@ -95,5 +188,62 @@ class SampleModal extends Modal {
 	onClose() {
 		const {contentEl} = this;
 		contentEl.empty();
+	}
+}
+
+function evaluate(node: jsep.Expression, vars: Vars): number {
+	switch (node.type) {
+
+		case "Literal":
+			return Number(node.value);
+
+		case "Identifier": {
+			const value = vars[node.name];
+
+			if (value == null) {
+				throw new Error(`Unknown variable: ${node.name}`);
+			}
+
+			return value;
+		}
+
+		case "BinaryExpression": {
+			const left = evaluate(node.left, vars);
+			const right = evaluate(node.right, vars);
+
+			let result;
+			switch (node.operator) {
+				case "+":
+					result = left + right;
+					break;
+
+				case "-":
+					result = left - right;
+					break;
+
+				case "*":
+					result = left * right;
+					break;
+
+				case "/":
+					result = left / right;
+					break;
+
+				case "@":
+					result = left * right / 1000;
+					break;
+
+				default:
+					throw new Error(`Unsupported operator: ${node.operator}`);
+			}
+			return round2(result);
+		}
+
+		default:
+			throw new Error(`Unsupported node type: ${node.type}`);
+	}
+
+	function round2(n: number): number {
+		return Math.round(n * 100) / 100;
 	}
 }
