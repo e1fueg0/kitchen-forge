@@ -4,3 +4,7 @@
 	padding: 12px;
 	background: var(--background-secondary);
 }
+
+.kf-error {
+	color: var(--text-error);
+}

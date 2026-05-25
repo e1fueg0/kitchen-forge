@@ -1,4 +1,4 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin, TextComponent} from 'obsidian';
+import {App, ButtonComponent, Editor, MarkdownView, Modal, Notice, Plugin, TextComponent} from 'obsidian';
 import YAML from "yaml";
 import jsep from "jsep";
 import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
@@ -28,6 +28,7 @@ type Vars = Record<string, number>;
 type CalcBinding = {
 	expr: string;
 	el: HTMLElement;
+	item: Ingredient;
 };
 
 export default class HelloWorldPlugin extends Plugin {
@@ -37,14 +38,6 @@ export default class HelloWorldPlugin extends Plugin {
 		jsep.addBinaryOp('@', 10);
 		await this.loadSettings();
 
-		// // This creates an icon in the left ribbon.
-		// this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
-		// 	// Called when the user clicks the icon.
-		// 	new Notice('This is a notice!');
-		// });
-		// this.addRibbonIcon('dice', 'Greet', () => {
-		// 	new Notice('Hello, world!');
-		// });
 		this.registerMarkdownCodeBlockProcessor('kitchenforge', (source, el, ctx) => {
 			const recipe = YAML.parse(source) as Recipe;
 
@@ -61,6 +54,35 @@ export default class HelloWorldPlugin extends Plugin {
 				}
 
 				const blockEl = el.createDiv({ cls: "kf-block" });
+
+				const copyCmp = new ButtonComponent(blockEl)
+				copyCmp.setButtonText("Copy")
+				copyCmp.onClick(async () => {
+					const lines: string[] = [];
+
+					for (const section of recipe.sections) {
+						lines.push(`__${section.name}__`);
+						lines.push('');
+						let no = 1;
+						for (let item of section.items) {
+							lines.push(` ${no++}. ${item.name}: **${item.value} ${item.unit}**`)
+						}
+						lines.push('');
+					}
+
+					const text = lines.join("\n");
+					await navigator.clipboard.writeText(text);
+					const old = copyCmp.buttonEl.textContent;
+
+					copyCmp.setButtonText("Copied ✓");
+					copyCmp.setDisabled(true);
+
+					setTimeout(() => {
+						copyCmp.setButtonText(old ?? "Copy");
+						copyCmp.setDisabled(false);
+					}, 1000);
+				})
+
 				for (const section of recipe.sections) {
 					blockEl.createEl('h3', {text: section.name});
 					const listEl = blockEl.createEl('ol');
@@ -69,13 +91,15 @@ export default class HelloWorldPlugin extends Plugin {
 						itemEl.createSpan({text: `${item.name}: `});
 						const bEl = itemEl.createEl('b');
 
-						const unit = item.unit ? item.unit : recipe.unit;
+						if (!item.unit)
+							item.unit = recipe.unit;
 						let value: number | undefined;
 						let expr = item.calc;
 						if (expr) {
 							value = evaluate(jsep(expr), vars);
+							item.value = value;
 							const valueEl = bEl.createSpan({text: String(value)});
-							bindings.push({expr: expr, el: valueEl});
+							bindings.push({expr: expr, el: valueEl, item: item});
 						} else if (!item.id) {
 							value = item.value;
 							bEl.createSpan({text: `${value}`});
@@ -84,83 +108,27 @@ export default class HelloWorldPlugin extends Plugin {
 							const input = new TextComponent(bEl);
 							input.inputEl.type = "number";
 							input.setValue(`${value}`);
-							input.inputEl.style.width = "10ch";
+							input.inputEl.setCssProps({"width": "10ch"});
 							input.onChange(value => {
-								console.log(`Calc: ${item.id} -> ${value}`);
-								vars[item.id] = Number(value);
-								console.log(" !! " + JSON.stringify(vars));
+								let nValue = Number(value);
+								vars[item.id] = nValue;
+								item.value = nValue;
 								for (const binding of bindings) {
 									const calculated = evaluate(jsep(binding.expr), vars);
-									console.log(` !! ${binding.expr} -> ${calculated}`);
-									console.log("EXPR", binding.expr);
-									console.log("AST", jsep(binding.expr));
-									console.log("VARS", vars);
 									binding.el.setText(`${calculated}`);
+									binding.item.value = calculated;
 								}
 							});
 						}
 
-						bEl.createEl('span', {text: ` ${unit}`});
+						bEl.createEl('span', {text: ` ${item.unit}`});
 					}
 				}
 			} catch (e) {
-				el.createEl('p', {text: 'Error parsing recipe: ' + e.message});
+				el.createEl('p', {text: 'Error parsing recipe: ' + e.message, cls: "kf-error"});
 				return;
 			}
 		});
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				editor.replaceSelection('Sample editor command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-				return false;
-			}
-		});
-
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		// this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-		// 	new Notice("Click");
-		// });
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-
 	}
 
 	onunload() {
@@ -172,22 +140,6 @@ export default class HelloWorldPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-	}
-}
-
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
 	}
 }
 
