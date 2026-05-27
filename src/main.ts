@@ -1,9 +1,7 @@
-import {App, ButtonComponent, Editor, MarkdownView, Modal, Notice, Plugin, TextComponent} from 'obsidian';
+import {ButtonComponent, Plugin, TextComponent} from 'obsidian';
 import YAML from "yaml";
 import jsep from "jsep";
-import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
-
-// Remember to rename these classes and interfaces!
+import {DEFAULT_SETTINGS, MyPluginSettings} from "./settings";
 
 type Ingredient = {
 	name: string;
@@ -93,21 +91,16 @@ export default class HelloWorldPlugin extends Plugin {
 
 						if (!item.unit)
 							item.unit = recipe.unit;
-						let value: number | undefined;
-						let expr = item.calc;
-						if (expr) {
-							value = evaluate(jsep(expr), vars);
-							item.value = value;
-							const valueEl = bEl.createSpan({text: String(value)});
-							bindings.push({expr: expr, el: valueEl, item: item});
+						if (item.calc) {
+							item.value = evaluate(jsep(item.calc), vars);
+							const valueEl = bEl.createSpan({text: String(item.value)});
+							bindings.push({expr: item.calc, el: valueEl, item: item});
 						} else if (!item.id) {
-							value = item.value;
-							bEl.createSpan({text: `${value}`});
+							bEl.createSpan({text: `${(item.value)}`});
 						} else {
-							value = item.value;
 							const input = new TextComponent(bEl);
 							input.inputEl.type = "number";
-							input.setValue(`${value}`);
+							input.setValue(`${(item.value)}`);
 							input.inputEl.setCssProps({"width": "10ch"});
 							input.onChange(value => {
 								let nValue = Number(value);
