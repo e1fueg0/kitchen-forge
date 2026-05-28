@@ -1,6 +1,7 @@
 import {ButtonComponent, MarkdownPostProcessorContext, TextComponent} from 'obsidian';
 import YAML from "yaml";
 import jsep from "jsep";
+import {evaluate, round, Vars} from "./calc";
 
 type Ingredient = {
 	name: string;
@@ -27,8 +28,6 @@ type Recipe = {
 	sections: Section[];
 };
 
-type Vars = Record<string, number>;
-
 type CalcBinding = {
 	expr: string;
 	el: HTMLElement;
@@ -40,66 +39,6 @@ type MultBinding = {
 	el: HTMLElement;
 	item: Ingredient;
 };
-
-function round(value: number, decimals: number): number {
-	const factor = 10 ** decimals;
-	return Math.round(value * factor) / factor;
-}
-
-function evaluate(node: jsep.Expression, vars: Vars): number {
-	switch (node.type) {
-
-		case "Literal":
-			return Number((node as jsep.Literal).value);
-
-		case "Identifier": {
-			const name = (node as jsep.Identifier).name;
-			const value = vars[name];
-
-			if (value == null) {
-				throw new Error(`Unknown variable: ${name}`);
-			}
-
-			return value;
-		}
-
-		case "BinaryExpression": {
-			const bin = node as jsep.BinaryExpression;
-			const left = evaluate(bin.left, vars);
-			const right = evaluate(bin.right, vars);
-
-			let result;
-			switch (bin.operator) {
-				case "+":
-					result = left + right;
-					break;
-
-				case "-":
-					result = left - right;
-					break;
-
-				case "*":
-					result = left * right;
-					break;
-
-				case "/":
-					result = left / right;
-					break;
-
-				case "@":
-					result = left * right / 1000;
-					break;
-
-				default:
-					throw new Error(`Unsupported operator: ${bin.operator}`);
-			}
-			return result;
-		}
-
-		default:
-			throw new Error(`Unsupported node type: ${node.type}`);
-	}
-}
 
 export function processKitchenForgeBlock(source: string, el: HTMLElement, _: MarkdownPostProcessorContext): void {
 	const recipe = YAML.parse(source) as Recipe;
