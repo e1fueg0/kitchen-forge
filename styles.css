@@ -5,6 +5,15 @@
 	background: var(--background-secondary);
 }
 
+.kf-scale-block {
+	padding: 5px;
+	margin-top: 12px;
+}
+
+.kf-input {
+	width: 10ch;
+}
+
 .kf-error {
 	color: var(--text-error);
 }

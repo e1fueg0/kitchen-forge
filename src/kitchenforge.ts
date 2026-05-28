@@ -105,7 +105,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 	const recipe = YAML.parse(source) as Recipe;
 	if (recipe.decimals == null)
 		recipe.decimals = 2;
-	let decimals= recipe.decimals;
+	let decimals = recipe.decimals;
 	if (recipe.unit == null)
 		recipe.unit = "g";
 	let unit = recipe.unit;
@@ -126,10 +126,11 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 			}
 		}
 
-		const blockEl = el.createDiv({ cls: "kf-block" });
+		const blockEl = el.createDiv({cls: "kf-block"});
 
 		const copyCmp = new ButtonComponent(blockEl)
-		copyCmp.setButtonText("Copy")
+		let name = "📋";
+		copyCmp.setButtonText(name)
 		copyCmp.onClick(async () => {
 			const lines: string[] = [];
 
@@ -146,12 +147,11 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 			const text = lines.join("\n");
 			await navigator.clipboard.writeText(text);
 
-			const old = copyCmp.buttonEl.textContent;
-			copyCmp.setButtonText("Copied ✓");
+			copyCmp.setButtonText("✅");
 			copyCmp.setDisabled(true);
 
 			setTimeout(() => {
-				copyCmp.setButtonText(old ?? "Copy");
+				copyCmp.setButtonText(name);
 				copyCmp.setDisabled(false);
 			}, 1000);
 		})
@@ -159,13 +159,14 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		if (recipe.scales) {
 			if (calcNo > 0)
 				throw new Error("Cannot have scales with ids/formulas specified");
-			const btnBlockEl = blockEl.createEl("p");
+			const btnBlockEl = blockEl.createDiv({cls: "kf-scale-block"});
+			btnBlockEl.createSpan({text: "📏 "});
 			for (const scale of recipe.scales) {
 				const scaleCmp = new ButtonComponent(btnBlockEl)
-				scaleCmp.setButtonText(scale.name);
+				scaleCmp.setButtonText("🎚 ️" + scale.name);
 				scaleCmp.onClick(async () => {
 					const old = scaleCmp.buttonEl.textContent;
-					scaleCmp.setButtonText("Set " + scale.name);
+					scaleCmp.setButtonText("✅" + scale.name);
 					scaleCmp.setDisabled(true);
 
 					for (const binding of multBindings) {
@@ -204,8 +205,8 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 					const id = item.id;
 					const input = new TextComponent(bEl);
 					input.inputEl.type = "number";
+					input.inputEl.addClass("kf-input");
 					input.setValue(`${(item.value)}`);
-					input.inputEl.setCssProps({"width": "10ch"});
 					input.onChange(value => {
 						let nValue = Number(value);
 						vars[id] = nValue;
