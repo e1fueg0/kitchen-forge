@@ -17,7 +17,7 @@ cache:
 
 .node:
   before_script:
-    - npm ci --legacy-peer-deps
+    - npm ci
 
 lint:
   extends: .node
