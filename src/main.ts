@@ -16,8 +16,15 @@ type Section = {
 	items: Ingredient[];
 };
 
+type Scale = {
+	name: string;
+	mult: number;
+};
+
 type Recipe = {
 	unit: string;
+	decimals: number;
+	scales: Scale[];
 	sections: Section[];
 };
 
@@ -29,6 +36,17 @@ type CalcBinding = {
 	item: Ingredient;
 };
 
+type MultBinding = {
+	origValue: number;
+	el: HTMLElement;
+	item: Ingredient;
+};
+
+function round(value: number, decimals: number): number {
+	const factor = 10 ** decimals;
+	return Math.round(value * factor) / factor;
+}
+
 export default class HelloWorldPlugin extends Plugin {
 	settings: MyPluginSettings;
 
@@ -38,16 +56,24 @@ export default class HelloWorldPlugin extends Plugin {
 
 		this.registerMarkdownCodeBlockProcessor('kitchenforge', (source, el, ctx) => {
 			const recipe = YAML.parse(source) as Recipe;
+			if (recipe.decimals == null)
+				recipe.decimals = 2;
+			if (recipe.unit == null)
+				recipe.unit = "g";
 
 			const vars: Vars = {};
-			const bindings: CalcBinding[] = [];
+			const calcBindings: CalcBinding[] = [];
+			const multBindings: MultBinding[] = [];
 
 			try {
+				let calcNo = 0;
 				for (const section of recipe.sections) {
 					for (const item of section.items) {
 						if (item.id && item.value != null) {
 							vars[item.id] = item.value;
 						}
+						if (item.calc || item.id)
+							calcNo++;
 					}
 				}
 
@@ -70,8 +96,8 @@ export default class HelloWorldPlugin extends Plugin {
 
 					const text = lines.join("\n");
 					await navigator.clipboard.writeText(text);
-					const old = copyCmp.buttonEl.textContent;
 
+					const old = copyCmp.buttonEl.textContent;
 					copyCmp.setButtonText("Copied ✓");
 					copyCmp.setDisabled(true);
 
@@ -80,6 +106,33 @@ export default class HelloWorldPlugin extends Plugin {
 						copyCmp.setDisabled(false);
 					}, 1000);
 				})
+
+				if (recipe.scales) {
+					if (calcNo > 0)
+						throw new Error("Cannot have scales with ids/formulas specified");
+					const btnBlockEl = blockEl.createEl("p");
+					for (const scale of recipe.scales) {
+						const scaleCmp = new ButtonComponent(btnBlockEl)
+						scaleCmp.setButtonText(scale.name);
+						scaleCmp.onClick(async () => {
+							const old = scaleCmp.buttonEl.textContent;
+							scaleCmp.setButtonText("Set " + scale.name);
+							scaleCmp.setDisabled(true);
+
+							for (const binding of multBindings) {
+								const calculated = round(binding.origValue * scale.mult, recipe.decimals);
+								binding.el.setText(`${calculated}`);
+								binding.item.value = calculated;
+							}
+
+							setTimeout(() => {
+								scaleCmp.setButtonText(old ?? "");
+								scaleCmp.setDisabled(false);
+							}, 1000);
+						})
+
+					}
+				}
 
 				for (const section of recipe.sections) {
 					blockEl.createEl('h3', {text: section.name});
@@ -92,11 +145,12 @@ export default class HelloWorldPlugin extends Plugin {
 						if (!item.unit)
 							item.unit = recipe.unit;
 						if (item.calc) {
-							item.value = evaluate(jsep(item.calc), vars);
+							item.value = round(evaluate(jsep(item.calc), vars), recipe.decimals);
 							const valueEl = bEl.createSpan({text: String(item.value)});
-							bindings.push({expr: item.calc, el: valueEl, item: item});
+							calcBindings.push({expr: item.calc, el: valueEl, item: item});
 						} else if (!item.id) {
-							bEl.createSpan({text: `${(item.value)}`});
+							const valueEl = bEl.createSpan({text: `${(item.value)}`});
+							multBindings.push({origValue: item.value ?? 0, el: valueEl, item: item});
 						} else {
 							const input = new TextComponent(bEl);
 							input.inputEl.type = "number";
@@ -106,8 +160,8 @@ export default class HelloWorldPlugin extends Plugin {
 								let nValue = Number(value);
 								vars[item.id] = nValue;
 								item.value = nValue;
-								for (const binding of bindings) {
-									const calculated = evaluate(jsep(binding.expr), vars);
+								for (const binding of calcBindings) {
+									const calculated = round(evaluate(jsep(binding.expr), vars), recipe.decimals);
 									binding.el.setText(`${calculated}`);
 									binding.item.value = calculated;
 								}
@@ -181,14 +235,10 @@ function evaluate(node: jsep.Expression, vars: Vars): number {
 				default:
 					throw new Error(`Unsupported operator: ${node.operator}`);
 			}
-			return round2(result);
+			return result;
 		}
 
 		default:
 			throw new Error(`Unsupported node type: ${node.type}`);
-	}
-
-	function round2(n: number): number {
-		return Math.round(n * 100) / 100;
 	}
 }
