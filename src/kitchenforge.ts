@@ -1,0 +1,229 @@
+import {ButtonComponent, MarkdownPostProcessorContext, TextComponent} from 'obsidian';
+import YAML from "yaml";
+import jsep from "jsep";
+
+type Ingredient = {
+	name: string;
+	id?: string;
+	value?: number;
+	calc?: string;
+	unit?: string;
+};
+
+type Section = {
+	name: string;
+	items: Ingredient[];
+};
+
+type Scale = {
+	name: string;
+	mult: number;
+};
+
+type Recipe = {
+	unit?: string;
+	decimals?: number;
+	scales: Scale[];
+	sections: Section[];
+};
+
+type Vars = Record<string, number>;
+
+type CalcBinding = {
+	expr: string;
+	el: HTMLElement;
+	item: Ingredient;
+};
+
+type MultBinding = {
+	origValue: number;
+	el: HTMLElement;
+	item: Ingredient;
+};
+
+function round(value: number, decimals: number): number {
+	const factor = 10 ** decimals;
+	return Math.round(value * factor) / factor;
+}
+
+function evaluate(node: jsep.Expression, vars: Vars): number {
+	switch (node.type) {
+
+		case "Literal":
+			return Number((node as jsep.Literal).value);
+
+		case "Identifier": {
+			const name = (node as jsep.Identifier).name;
+			const value = vars[name];
+
+			if (value == null) {
+				throw new Error(`Unknown variable: ${name}`);
+			}
+
+			return value;
+		}
+
+		case "BinaryExpression": {
+			const bin = node as jsep.BinaryExpression;
+			const left = evaluate(bin.left, vars);
+			const right = evaluate(bin.right, vars);
+
+			let result;
+			switch (bin.operator) {
+				case "+":
+					result = left + right;
+					break;
+
+				case "-":
+					result = left - right;
+					break;
+
+				case "*":
+					result = left * right;
+					break;
+
+				case "/":
+					result = left / right;
+					break;
+
+				case "@":
+					result = left * right / 1000;
+					break;
+
+				default:
+					throw new Error(`Unsupported operator: ${bin.operator}`);
+			}
+			return result;
+		}
+
+		default:
+			throw new Error(`Unsupported node type: ${node.type}`);
+	}
+}
+
+export function processKitchenForgeBlock(source: string, el: HTMLElement, _: MarkdownPostProcessorContext): void {
+	const recipe = YAML.parse(source) as Recipe;
+	if (recipe.decimals == null)
+		recipe.decimals = 2;
+	let decimals= recipe.decimals;
+	if (recipe.unit == null)
+		recipe.unit = "g";
+	let unit = recipe.unit;
+
+	const vars: Vars = {};
+	const calcBindings: CalcBinding[] = [];
+	const multBindings: MultBinding[] = [];
+
+	try {
+		let calcNo = 0;
+		for (const section of recipe.sections) {
+			for (const item of section.items) {
+				if (item.id && item.value != null) {
+					vars[item.id] = item.value;
+				}
+				if (item.calc || item.id)
+					calcNo++;
+			}
+		}
+
+		const blockEl = el.createDiv({ cls: "kf-block" });
+
+		const copyCmp = new ButtonComponent(blockEl)
+		copyCmp.setButtonText("Copy")
+		copyCmp.onClick(async () => {
+			const lines: string[] = [];
+
+			for (const section of recipe.sections) {
+				lines.push(`__${section.name}__`);
+				lines.push('');
+				let no = 1;
+				for (let item of section.items) {
+					lines.push(` ${no++}. ${item.name}: **${item.value} ${item.unit}**`)
+				}
+				lines.push('');
+			}
+
+			const text = lines.join("\n");
+			await navigator.clipboard.writeText(text);
+
+			const old = copyCmp.buttonEl.textContent;
+			copyCmp.setButtonText("Copied ✓");
+			copyCmp.setDisabled(true);
+
+			setTimeout(() => {
+				copyCmp.setButtonText(old ?? "Copy");
+				copyCmp.setDisabled(false);
+			}, 1000);
+		})
+
+		if (recipe.scales) {
+			if (calcNo > 0)
+				throw new Error("Cannot have scales with ids/formulas specified");
+			const btnBlockEl = blockEl.createEl("p");
+			for (const scale of recipe.scales) {
+				const scaleCmp = new ButtonComponent(btnBlockEl)
+				scaleCmp.setButtonText(scale.name);
+				scaleCmp.onClick(async () => {
+					const old = scaleCmp.buttonEl.textContent;
+					scaleCmp.setButtonText("Set " + scale.name);
+					scaleCmp.setDisabled(true);
+
+					for (const binding of multBindings) {
+						const calculated = round(binding.origValue * scale.mult, decimals);
+						binding.el.setText(`${calculated}`);
+						binding.item.value = calculated;
+					}
+
+					setTimeout(() => {
+						scaleCmp.setButtonText(old ?? "");
+						scaleCmp.setDisabled(false);
+					}, 1000);
+				})
+
+			}
+		}
+
+		for (const section of recipe.sections) {
+			blockEl.createEl('h3', {text: section.name});
+			const listEl = blockEl.createEl('ol');
+			for (const item of section.items) {
+				const itemEl = listEl.createEl('li');
+				itemEl.createSpan({text: `${item.name}: `});
+				const bEl = itemEl.createEl('b');
+
+				if (!item.unit)
+					item.unit = unit;
+				if (item.calc) {
+					item.value = round(evaluate(jsep(item.calc), vars), decimals);
+					const valueEl = bEl.createSpan({text: String(item.value)});
+					calcBindings.push({expr: item.calc, el: valueEl, item: item});
+				} else if (!item.id) {
+					const valueEl = bEl.createSpan({text: `${(item.value)}`});
+					multBindings.push({origValue: item.value ?? 0, el: valueEl, item: item});
+				} else {
+					const id = item.id;
+					const input = new TextComponent(bEl);
+					input.inputEl.type = "number";
+					input.setValue(`${(item.value)}`);
+					input.inputEl.setCssProps({"width": "10ch"});
+					input.onChange(value => {
+						let nValue = Number(value);
+						vars[id] = nValue;
+						item.value = nValue;
+						for (const binding of calcBindings) {
+							const calculated = round(evaluate(jsep(binding.expr), vars), decimals);
+							binding.el.setText(`${calculated}`);
+							binding.item.value = calculated;
+						}
+					});
+				}
+
+				bEl.createEl('span', {text: ` ${item.unit}`});
+			}
+		}
+	} catch (e) {
+		const message = e instanceof Error ? e.message : String(e);
+		el.createEl('p', {text: 'Error parsing recipe: ' + message, cls: "kf-error"});
+		return;
+	}
+}

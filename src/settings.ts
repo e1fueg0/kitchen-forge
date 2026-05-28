@@ -1,18 +1,18 @@
 import {App, PluginSettingTab, Setting} from "obsidian";
-import MyPlugin from "./main";
+import KitchenForgePlugin from "./main";
 
-export interface MyPluginSettings {
+export interface KitchenForgeSettings {
 	mySetting: string;
 }
 
-export const DEFAULT_SETTINGS: MyPluginSettings = {
+export const DEFAULT_SETTINGS: KitchenForgeSettings = {
 	mySetting: 'default'
 }
 
-export class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+export class KitchenForgeSettingTab extends PluginSettingTab {
+	plugin: KitchenForgePlugin;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: KitchenForgePlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
