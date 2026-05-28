@@ -1,0 +1,38 @@
+image: node:20
+
+stages:
+  - verify
+  - build
+
+variables:
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
+
+cache:
+  key:
+    files:
+      - package-lock.json
+  paths:
+    - .npm/
+    - node_modules/
+
+.node:
+  before_script:
+    - npm ci --legacy-peer-deps
+
+lint:
+  extends: .node
+  stage: verify
+  script:
+    - npm run lint
+
+test:
+  extends: .node
+  stage: verify
+  script:
+    - npm test
+
+build:
+  extends: .node
+  stage: build
+  script:
+    - npm run build
