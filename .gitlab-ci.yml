@@ -1,4 +1,7 @@
-image: node:20
+default:
+  image: node:20
+  tags:
+    - docker
 
 stages:
   - verify
