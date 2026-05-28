@@ -41,19 +41,23 @@ type MultBinding = {
 };
 
 export function processKitchenForgeBlock(source: string, el: HTMLElement, _: MarkdownPostProcessorContext): void {
-	const recipe = YAML.parse(source) as Recipe;
-	if (recipe.decimals == null)
-		recipe.decimals = 2;
-	let decimals = recipe.decimals;
-	if (recipe.unit == null)
-		recipe.unit = "g";
-	let unit = recipe.unit;
-
-	const vars: Vars = {};
-	const calcBindings: CalcBinding[] = [];
-	const multBindings: MultBinding[] = [];
-
 	try {
+		const recipe = YAML.parse(source) as Recipe | null;
+		if (recipe == null || typeof recipe !== "object")
+			throw new Error("Recipe must be a YAML mapping");
+		if (!Array.isArray(recipe.sections))
+			throw new Error("Recipe must have a 'sections' array");
+		if (recipe.decimals == null)
+			recipe.decimals = 2;
+		const decimals = recipe.decimals;
+		if (recipe.unit == null)
+			recipe.unit = "g";
+		const unit = recipe.unit;
+
+		const vars: Vars = {};
+		const calcBindings: CalcBinding[] = [];
+		const multBindings: MultBinding[] = [];
+
 		let calcNo = 0;
 		for (const section of recipe.sections) {
 			for (const item of section.items) {

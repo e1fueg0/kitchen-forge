@@ -20,6 +20,7 @@
 		"esbuild": "^0.28.0",
 		"eslint-plugin-obsidianmd": "0.1.9",
 		"globals": "14.0.0",
+		"happy-dom": "^20.9.0",
 		"jiti": "2.6.1",
 		"tslib": "2.4.0",
 		"typescript": "^5.8.3",
