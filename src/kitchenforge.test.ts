@@ -1,4 +1,4 @@
-import {beforeAll, beforeEach, describe, expect, it} from "vitest";
+import {beforeAll, beforeEach, describe, expect, it, vi} from "vitest";
 import jsep from "jsep";
 import type {MarkdownPostProcessorContext} from "obsidian";
 import {round} from "./calc";
@@ -435,6 +435,61 @@ sections:
 		const err = errorEl();
 		expect(err).not.toBeNull();
 		expect(err!.textContent).toContain("Section 'Broken' must have an 'items' array");
+	});
+
+	it("catches clipboard failures from the copy button and reports them", async () => {
+		const block = render(calcRecipe);
+		const original = navigator.clipboard;
+		Object.defineProperty(navigator, "clipboard", {
+			value: {writeText: vi.fn().mockRejectedValue(new Error("clipboard blocked"))},
+			configurable: true,
+		});
+		try {
+			const copyBtn = block!.querySelector("button");
+			expect(copyBtn).not.toBeNull();
+			copyBtn!.click();
+			// Let the async onClick body resolve so the catch can run.
+			await new Promise(resolve => setTimeout(resolve, 0));
+			const err = errorEl();
+			expect(err).not.toBeNull();
+			expect(err!.textContent).toContain("Copy failed: clipboard blocked");
+		} finally {
+			Object.defineProperty(navigator, "clipboard", {value: original, configurable: true});
+		}
+	});
+
+	it("catches errors raised during a scale click and reports them with 'Scale failed:'", () => {
+		const block = render(scaleRecipe);
+		// Break setText on the first value span; applyScale will hit it during the click.
+		const valueSpan = block!.querySelector("ol li b > span:first-child") as HTMLElement;
+		valueSpan.setText = vi.fn(() => {
+			throw new Error("synthetic");
+		});
+
+		const half = getScaleButtons(block!).find(b => b.textContent?.includes("Половина"))!;
+		half.click();
+
+		const err = errorEl();
+		expect(err).not.toBeNull();
+		expect(err!.textContent).toContain("Scale failed: synthetic");
+	});
+
+	it("catches errors raised by recalc during input change and reports them with 'Formula error:'", () => {
+		const block = render(calcRecipe);
+		// Break setText on the first calc-binding span; onChange's recalc will hit it.
+		const calcSpan = block!.querySelector("ol li b > span:first-child") as HTMLElement;
+		calcSpan.setText = vi.fn(() => {
+			throw new Error("synthetic");
+		});
+
+		const ingredients = getSectionItems(block!, 0);
+		const porcInput = ingredients[0]!.querySelector("input")!;
+		porcInput.value = "999";
+		porcInput.dispatchEvent(new Event("input"));
+
+		const err = errorEl();
+		expect(err).not.toBeNull();
+		expect(err!.textContent).toContain("Formula error: synthetic");
 	});
 
 	it("prefixes formula errors with 'Formula error:' to distinguish them from parse errors", () => {

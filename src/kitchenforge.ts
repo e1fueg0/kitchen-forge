@@ -62,15 +62,19 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 	const copyLabel = "📋";
 	copyCmp.setButtonText(copyLabel);
 	copyCmp.onClick(async () => {
-		await navigator.clipboard.writeText(formatRecipeToMarkdown(recipe));
+		try {
+			await navigator.clipboard.writeText(formatRecipeToMarkdown(recipe));
 
-		copyCmp.setButtonText("✅");
-		copyCmp.setDisabled(true);
+			copyCmp.setButtonText("✅");
+			copyCmp.setDisabled(true);
 
-		setTimeout(() => {
-			copyCmp.setButtonText(copyLabel);
-			copyCmp.setDisabled(false);
-		}, 1000);
+			setTimeout(() => {
+				copyCmp.setButtonText(copyLabel);
+				copyCmp.setDisabled(false);
+			}, 1000);
+		} catch (e) {
+			reportError(el, "Copy failed: " + (e instanceof Error ? e.message : String(e)));
+		}
 	});
 
 	if (recipe.scales) {
@@ -86,17 +90,21 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 			scaleCmp.setButtonText((scale.mult === 1 ? SELECTED_PREFIX : SCALE_PREFIX) + scale.name);
 			scaleButtons.push({cmp: scaleCmp, scale});
 			scaleCmp.onClick(async () => {
-				for (const entry of scaleButtons) {
-					const prefix = entry.scale === scale ? SELECTED_PREFIX : SCALE_PREFIX;
-					entry.cmp.setButtonText(prefix + entry.scale.name);
+				try {
+					for (const entry of scaleButtons) {
+						const prefix = entry.scale === scale ? SELECTED_PREFIX : SCALE_PREFIX;
+						entry.cmp.setButtonText(prefix + entry.scale.name);
+					}
+					scaleCmp.setDisabled(true);
+
+					applyScale(multBindings, scale.mult, decimals);
+
+					setTimeout(() => {
+						scaleCmp.setDisabled(false);
+					}, 1000);
+				} catch (e) {
+					reportError(el, "Scale failed: " + (e instanceof Error ? e.message : String(e)));
 				}
-				scaleCmp.setDisabled(true);
-
-				applyScale(multBindings, scale.mult, decimals);
-
-				setTimeout(() => {
-					scaleCmp.setDisabled(false);
-				}, 1000);
 			});
 		}
 	}
@@ -124,10 +132,14 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 				input.inputEl.addClass("kf-input");
 				input.setValue(`${(item.value)}`);
 				input.onChange(value => {
-					const nValue = Number(value);
-					vars[id] = nValue;
-					item.value = nValue;
-					recalcCalcBindings(calcBindings, vars, decimals);
+					try {
+						const nValue = Number(value);
+						vars[id] = nValue;
+						item.value = nValue;
+						recalcCalcBindings(calcBindings, vars, decimals);
+					} catch (e) {
+						reportError(el, "Formula error: " + (e instanceof Error ? e.message : String(e)));
+					}
 				});
 			}
 
