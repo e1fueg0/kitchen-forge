@@ -274,6 +274,59 @@ describe("workflow 2: scales", () => {
 		expect(buttons.length).toBe(3);
 	});
 
+	it("pre-selects the scale with mult=1 on render", () => {
+		const block = render(scaleRecipe);
+		const buttons = getScaleButtons(block!);
+		// scaleRecipe has Полный (mult: 1) first, Половина (.5), Треть (.33)
+		expect(buttons[0]!.textContent?.startsWith("✅")).toBe(true);
+		expect(buttons[1]!.textContent?.startsWith("🎚")).toBe(true);
+		expect(buttons[2]!.textContent?.startsWith("🎚")).toBe(true);
+	});
+
+	it("pre-selects the mult=1 scale regardless of its position in the list", () => {
+		const source = `
+unit: г
+scales:
+  - name: Половина
+    mult: .5
+  - name: Полный
+    mult: 1
+  - name: Треть
+    mult: .33
+sections:
+  - name: S
+    items:
+      - name: A
+        value: 100
+`;
+		const block = render(source);
+		const buttons = getScaleButtons(block!);
+		expect(buttons[0]!.textContent?.startsWith("🎚")).toBe(true);
+		expect(buttons[1]!.textContent?.startsWith("✅")).toBe(true);
+		expect(buttons[2]!.textContent?.startsWith("🎚")).toBe(true);
+	});
+
+	it("leaves every scale on 🎚 when no scale has mult=1", () => {
+		const source = `
+unit: г
+scales:
+  - name: Половина
+    mult: .5
+  - name: Треть
+    mult: .33
+sections:
+  - name: S
+    items:
+      - name: A
+        value: 100
+`;
+		const block = render(source);
+		const buttons = getScaleButtons(block!);
+		for (const btn of buttons) {
+			expect(btn.textContent?.startsWith("🎚")).toBe(true);
+		}
+	});
+
 	it("halves all values when the 'Половина' scale is clicked", () => {
 		const block = render(scaleRecipe);
 		const half = getScaleButtons(block!).find(b => b.textContent?.includes("Половина"))!;
@@ -314,6 +367,40 @@ describe("workflow 2: scales", () => {
 		expect(getItemValueText(dough[0])).toBe("400");
 		expect(getItemValueText(dough[1])).toBe("140");
 		expect(getItemValueText(dough[3])).toBe("160");
+	});
+
+	it("marks the clicked scale with ✅ and keeps 🎚 on the others", () => {
+		const block = render(scaleRecipe);
+		const buttons = getScaleButtons(block!);
+		const half = buttons.find(b => b.textContent?.includes("Половина"))!;
+
+		half.click();
+
+		const after = getScaleButtons(block!);
+		const halfText = after.find(b => b.textContent?.includes("Половина"))!.textContent ?? "";
+		const fullText = after.find(b => b.textContent?.includes("Полный"))!.textContent ?? "";
+		const thirdText = after.find(b => b.textContent?.includes("Треть"))!.textContent ?? "";
+
+		expect(halfText.startsWith("✅")).toBe(true);
+		expect(fullText.startsWith("🎚")).toBe(true);
+		expect(thirdText.startsWith("🎚")).toBe(true);
+	});
+
+	it("moves the ✅ marker to the newly clicked scale and resets the previous one to 🎚", () => {
+		const block = render(scaleRecipe);
+		const buttons = getScaleButtons(block!);
+		const half = buttons.find(b => b.textContent?.includes("Половина"))!;
+		const full = buttons.find(b => b.textContent?.includes("Полный"))!;
+
+		half.click();
+		full.click();
+
+		const after = getScaleButtons(block!);
+		const halfText = after.find(b => b.textContent?.includes("Половина"))!.textContent ?? "";
+		const fullText = after.find(b => b.textContent?.includes("Полный"))!.textContent ?? "";
+
+		expect(halfText.startsWith("🎚")).toBe(true);
+		expect(fullText.startsWith("✅")).toBe(true);
 	});
 });
 

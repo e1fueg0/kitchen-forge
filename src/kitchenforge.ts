@@ -9,7 +9,11 @@ import {
 	prefillVars,
 	recalcCalcBindings,
 	Recipe,
+	Scale,
 } from "./recipe";
+
+const SCALE_PREFIX = "🎚 ️";
+const SELECTED_PREFIX = "✅";
 
 function reportError(el: HTMLElement, message: string) {
 	el.createEl('p', {text: 'Error parsing recipe: ' + message, cls: "kf-error"});
@@ -64,18 +68,21 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 			}
 			const btnBlockEl = blockEl.createDiv({cls: "kf-scale-block"});
 			btnBlockEl.createSpan({text: "📏 "});
+			const scaleButtons: {cmp: ButtonComponent; scale: Scale}[] = [];
 			for (const scale of recipe.scales) {
 				const scaleCmp = new ButtonComponent(btnBlockEl);
-				scaleCmp.setButtonText("🎚 ️" + scale.name);
+				scaleCmp.setButtonText((scale.mult === 1 ? SELECTED_PREFIX : SCALE_PREFIX) + scale.name);
+				scaleButtons.push({cmp: scaleCmp, scale});
 				scaleCmp.onClick(async () => {
-					const old = scaleCmp.buttonEl.textContent;
-					scaleCmp.setButtonText("✅" + scale.name);
+					for (const entry of scaleButtons) {
+						const prefix = entry.scale === scale ? SELECTED_PREFIX : SCALE_PREFIX;
+						entry.cmp.setButtonText(prefix + entry.scale.name);
+					}
 					scaleCmp.setDisabled(true);
 
 					applyScale(multBindings, scale.mult, decimals);
 
 					setTimeout(() => {
-						scaleCmp.setButtonText(old ?? "");
 						scaleCmp.setDisabled(false);
 					}, 1000);
 				});
