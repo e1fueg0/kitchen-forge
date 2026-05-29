@@ -6,17 +6,27 @@ import {
 	CalcBinding,
 	formatRecipeToMarkdown,
 	MultBinding,
+	prefillVars,
 	recalcCalcBindings,
 	Recipe,
 } from "./recipe";
 
+function reportError(el: HTMLElement, message: string) {
+	el.createEl('p', {text: 'Error parsing recipe: ' + message, cls: "kf-error"});
+}
+
 export function processKitchenForgeBlock(source: string, el: HTMLElement, _: MarkdownPostProcessorContext): void {
+
 	try {
 		const recipe = YAML.parse(source) as Recipe | null;
-		if (recipe == null || typeof recipe !== "object")
-			throw new Error("Recipe must be a YAML mapping");
-		if (!Array.isArray(recipe.sections))
-			throw new Error("Recipe must have a 'sections' array");
+		if (recipe == null || typeof recipe !== "object") {
+			reportError(el, "Recipe must be a YAML mapping");
+			return;
+		}
+		if (!Array.isArray(recipe.sections)) {
+			reportError(el, "Recipe must have a 'sections' array");
+			return;
+		}
 		if (recipe.decimals == null)
 			recipe.decimals = 2;
 		const decimals = recipe.decimals;
@@ -28,16 +38,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		const calcBindings: CalcBinding[] = [];
 		const multBindings: MultBinding[] = [];
 
-		let calcNo = 0;
-		for (const section of recipe.sections) {
-			for (const item of section.items) {
-				if (item.id && item.value != null) {
-					vars[item.id] = item.value;
-				}
-				if (item.calc || item.id)
-					calcNo++;
-			}
-		}
+		const hasIdsOrCalcs = prefillVars(recipe, vars);
 
 		const blockEl = el.createDiv({cls: "kf-block"});
 
@@ -57,8 +58,10 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		});
 
 		if (recipe.scales) {
-			if (calcNo > 0)
-				throw new Error("Cannot have scales with ids/formulas specified");
+			if (hasIdsOrCalcs) {
+				reportError(el, "Cannot have scales with ids/formulas specified");
+				return;
+			}
 			const btnBlockEl = blockEl.createDiv({cls: "kf-scale-block"});
 			btnBlockEl.createSpan({text: "📏 "});
 			for (const scale of recipe.scales) {
@@ -117,7 +120,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		recalcCalcBindings(calcBindings, vars, decimals);
 	} catch (e) {
 		const message = e instanceof Error ? e.message : String(e);
-		el.createEl('p', {text: 'Error parsing recipe: ' + message, cls: "kf-error"});
+		reportError(el, message);
 		return;
 	}
 }

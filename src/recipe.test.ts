@@ -1,12 +1,14 @@
 import {beforeAll, describe, expect, it, vi} from "vitest";
 import jsep from "jsep";
 import {round} from "./calc";
+import {Vars} from "./calc";
 import {
 	applyScale,
 	CalcBinding,
 	formatRecipeToMarkdown,
 	Ingredient,
 	MultBinding,
+	prefillVars,
 	recalcCalcBindings,
 	Recipe,
 } from "./recipe";
@@ -15,7 +17,7 @@ beforeAll(() => {
 	jsep.addBinaryOp("@", 10);
 });
 
-describe("formatRecipeForClipboard", () => {
+describe("formatRecipeToMarkdown", () => {
 	it("formats a single section with numbered items", () => {
 		const recipe: Recipe = {
 			scales: [],
@@ -159,5 +161,85 @@ describe("recalcCalcBindings", () => {
 
 	it("is a no-op on an empty binding list", () => {
 		expect(() => recalcCalcBindings([], {}, 2)).not.toThrow();
+	});
+});
+
+describe("prefillVars", () => {
+	function makeRecipe(items: Ingredient[]): Recipe {
+		return {scales: [], sections: [{name: "S", items}]};
+	}
+
+	it("populates vars with id+value pairs", () => {
+		const vars: Vars = {};
+		prefillVars(makeRecipe([
+			{name: "A", id: "a", value: 10},
+			{name: "B", id: "b", value: 20},
+		]), vars);
+		expect(vars).toEqual({a: 10, b: 20});
+	});
+
+	it("treats value of 0 as a valid value (only null/undefined skipped)", () => {
+		const vars: Vars = {};
+		prefillVars(makeRecipe([{name: "zero", id: "z", value: 0}]), vars);
+		expect(vars).toEqual({z: 0});
+	});
+
+	it("skips id items that have no value", () => {
+		const vars: Vars = {};
+		prefillVars(makeRecipe([{name: "A", id: "a"}]), vars);
+		expect(vars).toEqual({});
+	});
+
+	it("ignores items that have only a value (no id)", () => {
+		const vars: Vars = {};
+		prefillVars(makeRecipe([{name: "plain", value: 5}]), vars);
+		expect(vars).toEqual({});
+	});
+
+	it("aggregates vars across multiple sections", () => {
+		const vars: Vars = {};
+		const recipe: Recipe = {
+			scales: [],
+			sections: [
+				{name: "X", items: [{name: "A", id: "a", value: 1}]},
+				{name: "Y", items: [{name: "B", id: "b", value: 2}]},
+			],
+		};
+		prefillVars(recipe, vars);
+		expect(vars).toEqual({a: 1, b: 2});
+	});
+
+	it("preserves pre-existing entries in the vars object", () => {
+		const vars: Vars = {seeded: 99};
+		prefillVars(makeRecipe([{name: "A", id: "a", value: 1}]), vars);
+		expect(vars).toEqual({seeded: 99, a: 1});
+	});
+
+	it("returns true when any item has an id", () => {
+		const vars: Vars = {};
+		expect(prefillVars(makeRecipe([{name: "A", id: "a", value: 1}]), vars)).toBe(true);
+	});
+
+	it("returns true when any item has a calc, even if no ids exist", () => {
+		const vars: Vars = {};
+		expect(prefillVars(makeRecipe([{name: "B", calc: "1 + 1"}]), vars)).toBe(true);
+	});
+
+	it("returns true for an id-only item even without a value (still considered 'interactive')", () => {
+		const vars: Vars = {};
+		expect(prefillVars(makeRecipe([{name: "A", id: "a"}]), vars)).toBe(true);
+	});
+
+	it("returns false for a plain value-only recipe (scale-mode candidate)", () => {
+		const vars: Vars = {};
+		expect(prefillVars(makeRecipe([
+			{name: "A", value: 100},
+			{name: "B", value: 200},
+		]), vars)).toBe(false);
+	});
+
+	it("returns false for an empty recipe", () => {
+		const vars: Vars = {};
+		expect(prefillVars({scales: [], sections: []}, vars)).toBe(false);
 	});
 });

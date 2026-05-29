@@ -29,7 +29,7 @@ export type Recipe = {
 // Minimal element interface so helpers don't depend on the full HTMLElement type
 // (and so tests can pass stubs without happy-dom + obsidian DOM polyfills).
 // HTMLElement structurally satisfies this once Obsidian's setText extension is loaded.
-export type SetTextEl = {setText(text: string): void};
+export type SetTextEl = { setText(text: string): void };
 
 export type CalcBinding = {
 	expr: string;
@@ -71,4 +71,18 @@ export function recalcCalcBindings(bindings: CalcBinding[], vars: Vars, decimals
 		binding.el.setText(`${calculated}`);
 		binding.item.value = calculated;
 	}
+}
+
+export function prefillVars(recipe: Recipe, vars: Vars): boolean {
+	let hasIdsOrCalcs = false;
+	for (const section of recipe.sections) {
+		for (const item of section.items) {
+			if (item.id && item.value != null) {
+				vars[item.id] = item.value;
+			}
+			if (item.calc || item.id)
+				hasIdsOrCalcs = true;
+		}
+	}
+	return hasIdsOrCalcs;
 }
