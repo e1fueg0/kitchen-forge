@@ -426,6 +426,35 @@ describe("error handling", () => {
 		expect(err!.textContent).toContain("Recipe must have a 'sections' array");
 	});
 
+	it("reports an error naming the section when 'items' is missing", () => {
+		render(`
+unit: г
+sections:
+  - name: Broken
+`);
+		const err = errorEl();
+		expect(err).not.toBeNull();
+		expect(err!.textContent).toContain("Section 'Broken' must have an 'items' array");
+	});
+
+	it("prefixes formula errors with 'Formula error:' to distinguish them from parse errors", () => {
+		const source = `
+unit: г
+sections:
+  - name: Section
+    items:
+      - name: A
+        id: a
+        value: 10
+      - name: B
+        calc: nonexistent * 2
+`;
+		render(source);
+		const err = errorEl();
+		expect(err).not.toBeNull();
+		expect(err!.textContent).toContain("Formula error: Unknown variable: nonexistent");
+	});
+
 	it("rejects scales combined with id/calc items", () => {
 		const source = `
 unit: г
