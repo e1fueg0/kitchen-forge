@@ -1,90 +1,219 @@
-# Obsidian Sample Plugin
+# kitchenForge Plugin
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+**English** — Interactive recipe blocks for Obsidian. Describe ingredients in YAML, then scale the whole recipe with one click or recompute dependent quantities live from formulas.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+**Français** — Blocs de recettes interactifs pour Obsidian. Décrivez vos ingrédients en YAML, puis mettez la recette à l'échelle en un clic ou recalculez les quantités dépendantes en direct à partir de formules.
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+---
 
-## First time developing plugins?
+kitchenForge renders a fenced ` ```kitchenforge ` code block as a structured ingredient list. A block operates in one of two mutually exclusive modes.
 
-Quick starting guide for new plugin devs:
+## Calculation mode (`id` + `calc`)
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+Mark base ingredients with an `id` to expose them as editable inputs. Dependent ingredients use a `calc:` expression that may reference those ids. The custom `@` operator computes `a @ b = a × b / 1000` — handy for g-per-kg ratios in charcuterie and similar recipes (e.g. salt at 20 g/kg of meat). The supported operators are `+ - * /` and `@`.
 
-## Releasing new releases
+````markdown
+```kitchenforge
+unit: g
+sections:
+  - name: 🥩 Raw materials
+    items:
+      - name: Pork (semi-fatty)
+        id: pork
+        value: 800
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+      - name: Back fat
+        id: lard
+        value: 200
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+  - name: 🧂 Spices and seasonings
+    items:
+      - name: Nitrite salt (0.6% NaNO₂)
+        calc: (pork + lard) @ 20
 
-## Adding your plugin to the community plugin list
+      - name: Ground black pepper
+        calc: (pork + lard) @ 1.5
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+      - name: Nutmeg
+        calc: (pork + lard) @ .5
 
-## How to use
+      - name: Sugar
+        calc: (pork + lard) @ 1.5
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+      - name: Dried garlic
+        calc: (pork + lard) @ 5
 
-## Manually installing the plugin
+      - name: Milk powder
+        calc: (pork + lard) @ 5
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+      - name: Iced water
+        calc: pork @ 15
+```
+````
 
-## Improve code quality with eslint
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
+<details>
+<summary>Version française</summary>
 
-## Funding URL
+````markdown
+```kitchenforge
+unit: g
+sections:
+  - name: 🥩 Matières premières
+    items:
+      - name: Porc mi-gras
+        id: porc
+        value: 800
 
-You can include funding URLs where people who use your plugin can financially support it.
+      - name: Lard gras
+        id: lard
+        value: 200
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+  - name: 🧂 Épices et aromates
+    items:
+      - name: Sel nitrité (0,6 % NaNO₂)
+        calc: (porc + lard) @ 20
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
+      - name: Poivre noir moulu
+        calc: (porc + lard) @ 1.5
+
+      - name: Noix de muscade
+        calc: (porc + lard) @ .5
+
+      - name: Sucre
+        calc: (porc + lard) @ 1.5
+
+      - name: Ail séché
+        calc: (porc + lard) @ 5
+
+      - name: Lait en poudre
+        calc: (porc + lard) @ 5
+
+      - name: Eau glacée
+        calc: porc @ 15
+```
+````
+
+</details>
+
+Edit any of the inputs — all dependent amounts recompute immediately.
+
+## Scaling mode (`scales`)
+
+Provide a `scales` list and plain ingredients with fixed `value`s. kitchenForge renders one button per scale; clicking it multiplies every amount by `mult`. Each click scales from the original amounts (not the most recent ones), so flipping between scales is non-destructive. The scale with `mult: 1`, if present, is selected on render.
+
+````markdown
+```kitchenforge
+unit: g
+decimals: 1
+scales:
+  - name: Full
+    mult: 1
+  - name: Half
+    mult: .5
+  - name: Third
+    mult: .33
+sections:
+  - name: 🥣 Dough
+    items:
+      - name: Flour
+        value: 400
+      - name: Butter
+        value: 140
+      - name: Egg yolks
+        value: 2
+        unit: pcs
+      - name: Sour cream
+        value: 160
+      - name: Salt
+        value: 5
+
+  - name: 🌰 Filling
+    items:
+      - name: Ground nuts
+        value: 80
+      - name: Powdered sugar
+        value: 40
+```
+````
+
+<details>
+<summary>Version française</summary>
+
+````markdown
+```kitchenforge
+unit: g
+decimals: 1
+scales:
+  - name: Complet
+    mult: 1
+  - name: Moitié
+    mult: .5
+  - name: Tiers
+    mult: .33
+sections:
+  - name: 🥣 Pâte
+    items:
+      - name: Farine
+        value: 400
+      - name: Beurre
+        value: 140
+      - name: Jaunes d'œufs
+        value: 2
+        unit: u
+      - name: Crème fraîche épaisse
+        value: 160
+      - name: Sel
+        value: 5
+
+  - name: 🌰 Garniture
+    items:
+      - name: Noix moulues
+        value: 80
+      - name: Sucre glace
+        value: 40
+```
+````
+
+</details>
+
+A recipe that mixes `scales:` with any item carrying `id:` or `calc:` is rejected with a clear error.
+
+## Fields
+
+| Field | Where | Notes |
+|---|---|---|
+| `unit` | top level | Default unit applied to items that don't override it. Defaults to `g`. |
+| `decimals` | top level | Decimal places for computed/scaled amounts. Defaults to `2`. |
+| `scales[]` | top level | `{name, mult}`. Mutually exclusive with `id`/`calc` items. |
+| `sections[]` | top level | `{name, items[]}`. |
+| `name` | item | Required. |
+| `value` | item | Number. Required for plain and `id` items; computed for `calc` items. |
+| `unit` | item | Overrides the recipe-level unit for this item. |
+| `id` | item | Exposes the item as an editable input. Other items can reference the id in `calc`. |
+| `calc` | item | Expression. Supports `+ - * /` and `@`. |
+
+## Copy
+
+Every rendered block has a 📋 button at the top. Clicking it copies the current state of the recipe (with whatever values are currently shown) as Markdown to the clipboard.
+
+## Installation
+
+### From the community plugins browser
+
+Once kitchenForge is approved: Settings → Community plugins → Browse → search for "kitchenForge" → Install → Enable.
+
+### Manually
+
+Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](../../releases/latest) and drop them into `<vault>/.obsidian/plugins/kitchen-forge/`. Then enable the plugin in Settings → Community plugins.
+
+## Development
+
+```sh
+npm install
+npm run dev      # esbuild in watch mode
+npm test         # vitest
+npm run lint
+npm run build    # tsc + production esbuild
 ```
 
-If you have multiple URLs, you can also do:
-
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
-```
-
-## API Documentation
-
-See https://docs.obsidian.md
+Tests cover both the pure helpers (`src/recipe.ts`, `src/calc.ts`) and the DOM-facing renderer (`src/kitchenforge.ts`) via `happy-dom`.
