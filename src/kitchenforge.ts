@@ -1,44 +1,14 @@
 import {ButtonComponent, MarkdownPostProcessorContext, TextComponent} from 'obsidian';
 import YAML from "yaml";
-import jsep from "jsep";
-import {evaluate, round, Vars} from "./calc";
-
-type Ingredient = {
-	name: string;
-	id?: string;
-	value?: number;
-	calc?: string;
-	unit?: string;
-};
-
-type Section = {
-	name: string;
-	items: Ingredient[];
-};
-
-type Scale = {
-	name: string;
-	mult: number;
-};
-
-type Recipe = {
-	unit?: string;
-	decimals?: number;
-	scales: Scale[];
-	sections: Section[];
-};
-
-type CalcBinding = {
-	expr: string;
-	el: HTMLElement;
-	item: Ingredient;
-};
-
-type MultBinding = {
-	origValue: number;
-	el: HTMLElement;
-	item: Ingredient;
-};
+import {Vars} from "./calc";
+import {
+	applyScale,
+	CalcBinding,
+	formatRecipeToMarkdown,
+	MultBinding,
+	recalcCalcBindings,
+	Recipe,
+} from "./recipe";
 
 export function processKitchenForgeBlock(source: string, el: HTMLElement, _: MarkdownPostProcessorContext): void {
 	try {
@@ -71,33 +41,20 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 
 		const blockEl = el.createDiv({cls: "kf-block"});
 
-		const copyCmp = new ButtonComponent(blockEl)
-		let name = "📋";
-		copyCmp.setButtonText(name)
+		const copyCmp = new ButtonComponent(blockEl);
+		const copyLabel = "📋";
+		copyCmp.setButtonText(copyLabel);
 		copyCmp.onClick(async () => {
-			const lines: string[] = [];
-
-			for (const section of recipe.sections) {
-				lines.push(`__${section.name}__`);
-				lines.push('');
-				let no = 1;
-				for (let item of section.items) {
-					lines.push(` ${no++}. ${item.name}: **${item.value} ${item.unit}**`)
-				}
-				lines.push('');
-			}
-
-			const text = lines.join("\n");
-			await navigator.clipboard.writeText(text);
+			await navigator.clipboard.writeText(formatRecipeToMarkdown(recipe));
 
 			copyCmp.setButtonText("✅");
 			copyCmp.setDisabled(true);
 
 			setTimeout(() => {
-				copyCmp.setButtonText(name);
+				copyCmp.setButtonText(copyLabel);
 				copyCmp.setDisabled(false);
 			}, 1000);
-		})
+		});
 
 		if (recipe.scales) {
 			if (calcNo > 0)
@@ -105,25 +62,20 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 			const btnBlockEl = blockEl.createDiv({cls: "kf-scale-block"});
 			btnBlockEl.createSpan({text: "📏 "});
 			for (const scale of recipe.scales) {
-				const scaleCmp = new ButtonComponent(btnBlockEl)
+				const scaleCmp = new ButtonComponent(btnBlockEl);
 				scaleCmp.setButtonText("🎚 ️" + scale.name);
 				scaleCmp.onClick(async () => {
 					const old = scaleCmp.buttonEl.textContent;
 					scaleCmp.setButtonText("✅" + scale.name);
 					scaleCmp.setDisabled(true);
 
-					for (const binding of multBindings) {
-						const calculated = round(binding.origValue * scale.mult, decimals);
-						binding.el.setText(`${calculated}`);
-						binding.item.value = calculated;
-					}
+					applyScale(multBindings, scale.mult, decimals);
 
 					setTimeout(() => {
 						scaleCmp.setButtonText(old ?? "");
 						scaleCmp.setDisabled(false);
 					}, 1000);
-				})
-
+				});
 			}
 		}
 
@@ -138,8 +90,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 				if (!item.unit)
 					item.unit = unit;
 				if (item.calc) {
-					item.value = round(evaluate(jsep(item.calc), vars), decimals);
-					const valueEl = bEl.createSpan({text: String(item.value)});
+					const valueEl = bEl.createSpan({text: ""});
 					calcBindings.push({expr: item.calc, el: valueEl, item: item});
 				} else if (!item.id) {
 					const valueEl = bEl.createSpan({text: `${(item.value)}`});
@@ -151,20 +102,19 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 					input.inputEl.addClass("kf-input");
 					input.setValue(`${(item.value)}`);
 					input.onChange(value => {
-						let nValue = Number(value);
+						const nValue = Number(value);
 						vars[id] = nValue;
 						item.value = nValue;
-						for (const binding of calcBindings) {
-							const calculated = round(evaluate(jsep(binding.expr), vars), decimals);
-							binding.el.setText(`${calculated}`);
-							binding.item.value = calculated;
-						}
+						recalcCalcBindings(calcBindings, vars, decimals);
 					});
 				}
 
 				bEl.createEl('span', {text: ` ${item.unit}`});
 			}
 		}
+
+		// Evaluate all calc bindings once everything is wired up.
+		recalcCalcBindings(calcBindings, vars, decimals);
 	} catch (e) {
 		const message = e instanceof Error ? e.message : String(e);
 		el.createEl('p', {text: 'Error parsing recipe: ' + message, cls: "kf-error"});
