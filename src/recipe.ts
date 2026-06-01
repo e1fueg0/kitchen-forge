@@ -1,5 +1,5 @@
 import jsep from "jsep";
-import {evaluate, round, Vars} from "./calc";
+import {evaluate, round, roundToStep, Vars} from "./calc";
 
 export type Ingredient = {
 	name: string;
@@ -7,6 +7,7 @@ export type Ingredient = {
 	value?: number;
 	calc?: string;
 	unit?: string;
+	round?: number;
 };
 
 export type Section = {
@@ -57,9 +58,15 @@ export function formatRecipeToMarkdown(recipe: Recipe): string {
 	return lines.join("\n");
 }
 
+// Round a computed amount, honoring a per-item `round` step when present and
+// otherwise falling back to the recipe-wide decimal precision.
+function roundForItem(value: number, item: Ingredient, decimals: number): number {
+	return item.round != null ? roundToStep(value, item.round, decimals) : round(value, decimals);
+}
+
 export function applyScale(bindings: MultBinding[], mult: number, decimals: number): void {
 	for (const binding of bindings) {
-		const calculated = round(binding.origValue * mult, decimals);
+		const calculated = roundForItem(binding.origValue * mult, binding.item, decimals);
 		binding.el.setText(`${calculated}`);
 		binding.item.value = calculated;
 	}
@@ -67,7 +74,7 @@ export function applyScale(bindings: MultBinding[], mult: number, decimals: numb
 
 export function recalcCalcBindings(bindings: CalcBinding[], vars: Vars, decimals: number): void {
 	for (const binding of bindings) {
-		const calculated = round(evaluate(jsep(binding.expr), vars), decimals);
+		const calculated = roundForItem(evaluate(jsep(binding.expr), vars), binding.item, decimals);
 		binding.el.setText(`${calculated}`);
 		binding.item.value = calculated;
 	}

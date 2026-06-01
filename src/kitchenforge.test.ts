@@ -416,6 +416,64 @@ sections:
 	});
 });
 
+const roundRecipe = `
+unit: г
+decimals: 1
+scales:
+  - name: Половина
+    mult: .5
+  - name: Треть
+    mult: .33
+sections:
+  - name: 🍖 Фарш
+    items:
+      - name: Мясной фарш
+        value: 1000
+      - name: Картошка
+        value: 150
+        round: 25
+      - name: Яйцо
+        value: 1
+        unit: шт
+        round: 1
+      - name: Соль
+        value: 12
+`;
+
+describe("workflow 2b: per-item round", () => {
+	it("snaps initial values to nice numbers and stays exact for unrounded items", () => {
+		const block = render(roundRecipe);
+		const filling = getSectionItems(block!, 0);
+		expect(getItemValueText(filling[0])).toBe("1000"); // фарш, no round
+		expect(getItemValueText(filling[1])).toBe("150");  // картошка, already a multiple of 25
+		expect(getItemValueText(filling[2])).toBe("1");     // яйцо
+		expect(getItemValueText(filling[3])).toBe("12");    // соль
+	});
+
+	it("rounds картошка to the nearest 25 g when scaling", () => {
+		const block = render(roundRecipe);
+		getScaleButtons(block!).find(b => b.textContent?.includes("Треть"))!.click();
+		const filling = getSectionItems(block!, 0);
+		// 150 * 0.33 = 49.5 → nearest 25 = 50
+		expect(getItemValueText(filling[1])).toBe("50");
+	});
+
+	it("never lets a whole-unit ingredient (яйцо) scale down to 0", () => {
+		const block = render(roundRecipe);
+		getScaleButtons(block!).find(b => b.textContent?.includes("Треть"))!.click();
+		const filling = getSectionItems(block!, 0);
+		// 1 * 0.33 = 0.33 → floored to 1 egg, not 0
+		expect(getItemValueText(filling[2])).toBe("1");
+	});
+
+	it("leaves unrounded ingredients (соль) on plain decimal scaling", () => {
+		const block = render(roundRecipe);
+		getScaleButtons(block!).find(b => b.textContent?.includes("Половина"))!.click();
+		const filling = getSectionItems(block!, 0);
+		expect(getItemValueText(filling[3])).toBe(String(round(12 * 0.5, 1))); // 6
+	});
+});
+
 describe("error handling", () => {
 	it("renders a .kf-error paragraph for malformed YAML", () => {
 		render("this is: not\n  valid: yaml: ::");

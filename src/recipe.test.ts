@@ -119,6 +119,22 @@ describe("applyScale", () => {
 	it("is a no-op on an empty binding list", () => {
 		expect(() => applyScale([], 0.5, 2)).not.toThrow();
 	});
+
+	it("snaps to a per-item round step instead of decimals when set", () => {
+		const a = makeBinding(150);
+		a.item.round = 25;
+		applyScale([a.binding], 0.33, 1); // 150 * 0.33 = 49.5 → nearest 25 = 50
+		expect(a.el.setText).toHaveBeenCalledWith("50");
+		expect(a.item.value).toBe(50);
+	});
+
+	it("floors a rounded whole-unit ingredient at one step so it never hits 0", () => {
+		const egg = makeBinding(1);
+		egg.item.round = 1;
+		applyScale([egg.binding], 0.33, 1); // 0.33 → would be 0, floored to 1
+		expect(egg.el.setText).toHaveBeenCalledWith("1");
+		expect(egg.item.value).toBe(1);
+	});
 });
 
 describe("recalcCalcBindings", () => {
@@ -161,6 +177,14 @@ describe("recalcCalcBindings", () => {
 
 	it("is a no-op on an empty binding list", () => {
 		expect(() => recalcCalcBindings([], {}, 2)).not.toThrow();
+	});
+
+	it("applies a per-item round step to the computed result", () => {
+		const a = makeCalcBinding("flour @ 2"); // 137 * 2 / 1000 = 0.274
+		a.item.round = 0.5;
+		recalcCalcBindings([a.binding], {flour: 137}, 2); // 0.274 → nearest 0.5, floored to 0.5
+		expect(a.el.setText).toHaveBeenCalledWith("0.5");
+		expect(a.item.value).toBe(0.5);
 	});
 });
 

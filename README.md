@@ -136,6 +136,22 @@ sections:
 ```
 ````
 
+### Rounding (`round`)
+
+By default scaled amounts use the recipe-wide `decimals`. Set a per-item `round: N` to snap an amount to the nearest multiple of `N` instead — useful for ingredients where decimal precision is just noise (round potatoes to the nearest `25` g) or for whole-unit items (eggs, sachets with `round: 1`). A non-zero amount never rounds down to `0`: it floors at one step, so scaling down can't make an ingredient disappear.
+
+```yaml
+- name: Potato
+  value: 150
+  round: 25      # 49.5 → 50, not 49.5
+- name: Egg
+  value: 1
+  unit: pcs
+  round: 1       # whole eggs only; a half-recipe still shows 1, not 0
+```
+
+Note that `round: 1` on a low count of an impactful ingredient (e.g. eggs) introduces real error when scaled — for those, expressing the ingredient by weight (1 egg ≈ 50 g) with a small `round` scales more honestly.
+
 <details>
 <summary>Version française</summary>
 
@@ -191,6 +207,7 @@ A recipe that mixes `scales:` with any item carrying `id:` or `calc:` is rejecte
 | `unit` | item | Overrides the recipe-level unit for this item. |
 | `id` | item | Exposes the item as an editable input. Other items can reference the id in `calc`. |
 | `calc` | item | Expression. Supports `+ - * /` and `@`. |
+| `round` | item | Snap computed/scaled amount to the nearest multiple of this step (e.g. `25`, `1`). Overrides `decimals`; a non-zero amount floors at one step. |
 
 ## Copy
 

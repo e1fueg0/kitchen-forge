@@ -1,6 +1,6 @@
 import {beforeAll, describe, expect, it} from "vitest";
 import jsep from "jsep";
-import {evaluate, round, Vars} from "./calc";
+import {evaluate, round, roundToStep, Vars} from "./calc";
 
 beforeAll(() => {
 	jsep.addBinaryOp("@", 10);
@@ -37,6 +37,46 @@ describe("round", () => {
 
 	it("preserves negative zero-sign edge cases as 0", () => {
 		expect(round(-0.0001, 2)).toBe(-0);
+	});
+});
+
+describe("roundToStep", () => {
+	it("snaps to the nearest multiple of step", () => {
+		expect(roundToStep(150, 25, 1)).toBe(150);
+		expect(roundToStep(49.5, 25, 1)).toBe(50);
+		expect(roundToStep(33, 25, 1)).toBe(25);
+		expect(roundToStep(16.5, 5, 1)).toBe(15);
+	});
+
+	it("rounds whole-unit ingredients (step 1) to integers", () => {
+		expect(roundToStep(0.5, 1, 1)).toBe(1);
+		expect(roundToStep(1.4, 1, 1)).toBe(1);
+		expect(roundToStep(3.3, 1, 1)).toBe(3);
+	});
+
+	it("floors a non-zero amount at one step so it never vanishes", () => {
+		// 1 egg * 0.33 = 0.33 → would round to 0, but floors to a whole egg.
+		expect(roundToStep(0.33, 1, 1)).toBe(1);
+		expect(roundToStep(0.0001, 25, 1)).toBe(25);
+	});
+
+	it("keeps an exact zero as zero (no spurious floor)", () => {
+		expect(roundToStep(0, 1, 1)).toBe(0);
+		expect(roundToStep(0, 25, 1)).toBe(0);
+	});
+
+	it("floors negative amounts toward -step (sign preserved)", () => {
+		expect(roundToStep(-0.1, 5, 1)).toBe(-5);
+	});
+
+	it("scrubs floating-point artefacts via decimals", () => {
+		// 0.1 * 3 = 0.30000000000000004 without the final cleanup.
+		expect(roundToStep(0.3, 0.1, 2)).toBe(0.3);
+	});
+
+	it("falls back to plain decimal rounding when step is non-positive", () => {
+		expect(roundToStep(1.2345, 0, 2)).toBe(1.23);
+		expect(roundToStep(1.2345, -5, 2)).toBe(1.23);
 	});
 });
 

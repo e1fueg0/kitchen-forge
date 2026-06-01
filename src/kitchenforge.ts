@@ -152,6 +152,10 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		}
 	}
 
+	// Normalize the initial display through the same rounding the scale buttons
+	// use, so per-item `round` (and `decimals`) apply on first render at mult=1.
+	applyScale(multBindings, 1, decimals);
+
 	// Evaluate all calc bindings once everything is wired up.
 	try {
 		recalcCalcBindings(calcBindings, vars, decimals);

@@ -7,6 +7,17 @@ export function round(value: number, decimals: number): number {
 	return Math.round(value * factor) / factor;
 }
 
+// Round to the nearest multiple of `step` (e.g. eggs to whole units, coarse
+// ingredients to the nearest 25 g). A non-zero amount never collapses to zero —
+// it floors at one step — so scaling down can't make an ingredient vanish.
+// `decimals` is used only to scrub floating-point artefacts from the result.
+export function roundToStep(value: number, step: number, decimals: number): number {
+	if (step <= 0) return round(value, decimals);
+	const snapped = Math.round(value / step) * step;
+	const result = snapped === 0 && value !== 0 ? Math.sign(value) * step : snapped;
+	return round(result, decimals);
+}
+
 export function evaluate(node: jsep.Expression, vars: Vars): number {
 	switch (node.type) {
 
