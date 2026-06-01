@@ -99,7 +99,7 @@ Edit any of the inputs — all dependent amounts recompute immediately.
 
 ## Scaling mode (`scales`)
 
-Provide a `scales` list and plain ingredients with fixed `value`s. kitchenForge renders one button per scale; clicking it multiplies every amount by `mult`. Each click scales from the original amounts (not the most recent ones), so flipping between scales is non-destructive. The scale with `mult: 1`, if present, is selected on render.
+Provide a `scales` list and plain ingredients with fixed `value`s. kitchenForge renders one button per scale; clicking it multiplies every amount by `mult`. Each click scales from the original amounts (not the most recent ones), so flipping between scales is non-destructive. The scale with `mult: 1`, if present, is selected on render; otherwise an implicit `💯 1:1` button (the recipe as written) is added automatically and selected by default.
 
 ````markdown
 ```kitchenforge

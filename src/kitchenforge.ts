@@ -13,7 +13,8 @@ import {
 } from "./recipe";
 
 const SCALE_PREFIX = "🎚 ️";
-const SELECTED_PREFIX = "✅";
+const SELECTED_PREFIX = "✅ ";
+const ORIGINAL_SCALE_NAME = "💯 1:1";
 
 function reportError(el: HTMLElement, message: string) {
 	el.createEl('p', {text: 'Error parsing recipe: ' + message, cls: "kf-error"});
@@ -82,10 +83,14 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 			reportError(el, "Cannot have scales with ids/formulas specified");
 			return;
 		}
+		const scales = recipe.scales.some(s => s.mult === 1)
+			? recipe.scales
+			: [{name: ORIGINAL_SCALE_NAME, mult: 1}, ...recipe.scales];
+
 		const btnBlockEl = blockEl.createDiv({cls: "kf-scale-block"});
 		btnBlockEl.createSpan({text: "📏 "});
 		const scaleButtons: {cmp: ButtonComponent; scale: Scale}[] = [];
-		for (const scale of recipe.scales) {
+		for (const scale of scales) {
 			const scaleCmp = new ButtonComponent(btnBlockEl);
 			scaleCmp.setButtonText((scale.mult === 1 ? SELECTED_PREFIX : SCALE_PREFIX) + scale.name);
 			scaleButtons.push({cmp: scaleCmp, scale});

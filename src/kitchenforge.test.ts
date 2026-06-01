@@ -306,7 +306,7 @@ sections:
 		expect(buttons[2]!.textContent?.startsWith("🎚")).toBe(true);
 	});
 
-	it("leaves every scale on 🎚 when no scale has mult=1", () => {
+	it("adds an implicit pre-selected 1:1 scale when no scale has mult=1", () => {
 		const source = `
 unit: г
 scales:
@@ -322,9 +322,21 @@ sections:
 `;
 		const block = render(source);
 		const buttons = getScaleButtons(block!);
-		for (const btn of buttons) {
-			expect(btn.textContent?.startsWith("🎚")).toBe(true);
-		}
+		// The 💯 1:1 button is prepended and pre-selected; the user scales follow on 🎚.
+		expect(buttons.length).toBe(3);
+		expect(buttons[0]!.textContent).toContain("1:1");
+		expect(buttons[0]!.textContent?.startsWith("✅")).toBe(true);
+		expect(buttons[1]!.textContent?.startsWith("🎚")).toBe(true);
+		expect(buttons[2]!.textContent?.startsWith("🎚")).toBe(true);
+		// Original values stay intact (the implicit scale is mult=1).
+		expect(getItemValueText(getSectionItems(block!, 0)[0])).toBe("100");
+	});
+
+	it("does not add an implicit 1:1 scale when a user scale already has mult=1", () => {
+		const block = render(scaleRecipe);
+		const buttons = getScaleButtons(block!);
+		expect(buttons.length).toBe(3);
+		expect(buttons.some(b => b.textContent?.includes("1:1"))).toBe(false);
 	});
 
 	it("halves all values when the 'Половина' scale is clicked", () => {
