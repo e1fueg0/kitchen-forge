@@ -47,8 +47,13 @@ export type MultBinding = {
 export function formatRecipeToMarkdown(recipe: Recipe): string {
 	const lines: string[] = [];
 	for (const section of recipe.sections) {
-		lines.push(`__${section.name}__`);
-		lines.push("");
+		if (section.name) {
+			lines.push(`__${section.name}__`);
+			lines.push("");
+		} else if (lines.length > 0) {
+			lines.push("&nbsp;");   // пустой абзац: отступ + разрыв нумерации
+			lines.push("");
+		}
 		let no = 1;
 		for (const item of section.items) {
 			lines.push(` ${no++}. ${item.name}: **${item.value} ${item.unit}**`);

@@ -115,7 +115,10 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 	}
 
 	for (const section of recipe.sections) {
-		blockEl.createEl('h3', {text: section.name});
+		if (section.name)
+			blockEl.createEl('h3', {text: section.name});
+		else if (blockEl.childElementCount > 0)
+			blockEl.createEl('p', {cls: 'kf-section-gap'});
 		const listEl = blockEl.createEl('ol');
 		for (const item of section.items) {
 			const itemEl = listEl.createEl('li');
