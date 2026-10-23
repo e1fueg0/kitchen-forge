@@ -61,6 +61,7 @@ mirror_to_github:
     - git config --global user.email "ci@gitlab.local"
     - git config --global user.name "GitLab CI"
   script:
+    - git remote remove github 2>/dev/null || true
     - git remote add github "https://oauth2:${GITHUB_TOKEN}@github.com/e1fueg0/kitchen-forge.git"
     - git push github "refs/tags/${CI_COMMIT_TAG}:refs/tags/${CI_COMMIT_TAG}" --force
     - git push github "HEAD:main" --force
