@@ -78,21 +78,30 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		}
 	});
 
+	let initialScaleMult = 1;
+
 	if (recipe.scales) {
 		if (hasIdsOrCalcs) {
 			reportError(el, "Cannot have scales with ids/formulas specified");
 			return;
 		}
+		// If no user scale has mult=1, prepend implicit 1:1 scale.
+		// The first scale in the final list becomes the initially selected one.
 		const scales = recipe.scales.some(s => s.mult === 1)
 			? recipe.scales
 			: [{name: ORIGINAL_SCALE_NAME, mult: 1}, ...recipe.scales];
+
+		// scales is non-empty because recipe.scales.length > 0 and we either use it directly or prepend
+		const initialScale = scales[0];
+		initialScaleMult = initialScale!.mult;
 
 		const btnBlockEl = blockEl.createDiv({cls: "kf-scale-block"});
 		btnBlockEl.createSpan({text: "📏 "});
 		const scaleButtons: {cmp: ButtonComponent; scale: Scale}[] = [];
 		for (const scale of scales) {
 			const scaleCmp = new ButtonComponent(btnBlockEl);
-			scaleCmp.setButtonText((scale.mult === 1 ? SELECTED_PREFIX : SCALE_PREFIX) + scale.name);
+			const isSelected = scale === initialScale;
+			scaleCmp.setButtonText((isSelected ? SELECTED_PREFIX : SCALE_PREFIX) + scale.name);
 			scaleButtons.push({cmp: scaleCmp, scale});
 			scaleCmp.onClick(async () => {
 				try {
@@ -155,9 +164,9 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		}
 	}
 
-	// Normalize the initial display through the same rounding the scale buttons
-	// use, so per-item `round` (and `decimals`) apply on first render at mult=1.
-	applyScale(multBindings, 1, decimals);
+	// Apply initial scale (first in list) or mult=1 if no scales.
+	// This runs after multBindings are populated from section rendering.
+	applyScale(multBindings, initialScaleMult, decimals);
 
 	// Evaluate all calc bindings once everything is wired up.
 	try {

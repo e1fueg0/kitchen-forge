@@ -283,7 +283,7 @@ describe("workflow 2: scales", () => {
 		expect(buttons[2]!.textContent?.startsWith("🎚")).toBe(true);
 	});
 
-	it("pre-selects the mult=1 scale regardless of its position in the list", () => {
+	it("pre-selects the first scale in the list regardless of its mult", () => {
 		const source = `
 unit: г
 scales:
@@ -301,9 +301,14 @@ sections:
 `;
 		const block = render(source);
 		const buttons = getScaleButtons(block!);
-		expect(buttons[0]!.textContent?.startsWith("🎚")).toBe(true);
-		expect(buttons[1]!.textContent?.startsWith("✅")).toBe(true);
+		// First scale (Половина, mult=0.5) should be selected and applied
+		expect(buttons[0]!.textContent?.startsWith("✅")).toBe(true);
+		expect(buttons[0]!.textContent).toContain("Половина");
+		expect(buttons[1]!.textContent?.startsWith("🎚")).toBe(true);
 		expect(buttons[2]!.textContent?.startsWith("🎚")).toBe(true);
+		// Values should be halved (mult=0.5)
+		const items = getSectionItems(block!, 0);
+		expect(getItemValueText(items[0])).toBe("50"); // 100 * 0.5
 	});
 
 	it("adds an implicit pre-selected 1:1 scale when no scale has mult=1", () => {
