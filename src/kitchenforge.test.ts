@@ -311,7 +311,7 @@ sections:
 		expect(getItemValueText(items[0])).toBe("50"); // 100 * 0.5
 	});
 
-	it("adds an implicit pre-selected 1:1 scale when no scale has mult=1", () => {
+	it("adds an implicit 1:1 scale at the end when no scale has mult=1", () => {
 		const source = `
 unit: г
 scales:
@@ -327,14 +327,16 @@ sections:
 `;
 		const block = render(source);
 		const buttons = getScaleButtons(block!);
-		// The 💯 1:1 button is prepended and pre-selected; the user scales follow on 🎚.
+		// The 💯 1:1 button is appended at the end; first user scale (Половина) is selected
 		expect(buttons.length).toBe(3);
-		expect(buttons[0]!.textContent).toContain("1:1");
 		expect(buttons[0]!.textContent?.startsWith("✅")).toBe(true);
+		expect(buttons[0]!.textContent).toContain("Половина");
 		expect(buttons[1]!.textContent?.startsWith("🎚")).toBe(true);
+		expect(buttons[1]!.textContent).toContain("Треть");
+		expect(buttons[2]!.textContent).toContain("1:1");
 		expect(buttons[2]!.textContent?.startsWith("🎚")).toBe(true);
-		// Original values stay intact (the implicit scale is mult=1).
-		expect(getItemValueText(getSectionItems(block!, 0)[0])).toBe("100");
+		// Values are halved because first scale (Половина, mult=0.5) is applied
+		expect(getItemValueText(getSectionItems(block!, 0)[0])).toBe("50");
 	});
 
 	it("does not add an implicit 1:1 scale when a user scale already has mult=1", () => {
@@ -449,10 +451,11 @@ describe("workflow 2b: per-item round", () => {
 	it("snaps initial values to nice numbers and stays exact for unrounded items", () => {
 		const block = render(roundRecipe);
 		const filling = getSectionItems(block!, 0);
-		expect(getItemValueText(filling[0])).toBe("1000"); // фарш, no round
-		expect(getItemValueText(filling[1])).toBe("150");  // картошка, already a multiple of 25
-		expect(getItemValueText(filling[2])).toBe("1");     // яйцо
-		expect(getItemValueText(filling[3])).toBe("12");    // соль
+		// First scale (Половина, mult=0.5) is applied on initial render
+		expect(getItemValueText(filling[0])).toBe("500");  // фарш: 1000 * 0.5
+		expect(getItemValueText(filling[1])).toBe("75");   // картошка: 150 * 0.5 = 75, rounded to nearest 25 = 75
+		expect(getItemValueText(filling[2])).toBe("1");    // яйцо: 1 * 0.5 = 0.5 → floored to 1
+		expect(getItemValueText(filling[3])).toBe("6");    // соль: 12 * 0.5 = 6
 	});
 
 	it("rounds картошка to the nearest 25 g when scaling", () => {

@@ -85,13 +85,13 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 			reportError(el, "Cannot have scales with ids/formulas specified");
 			return;
 		}
-		// If no user scale has mult=1, prepend implicit 1:1 scale.
-		// The first scale in the final list becomes the initially selected one.
+		// If no user scale has mult=1, append implicit 1:1 scale at the END.
+		// The first scale in the final list (first user-defined) becomes the initially selected one.
 		const scales = recipe.scales.some(s => s.mult === 1)
 			? recipe.scales
-			: [{name: ORIGINAL_SCALE_NAME, mult: 1}, ...recipe.scales];
+			: [...recipe.scales, {name: ORIGINAL_SCALE_NAME, mult: 1}];
 
-		// scales is non-empty because recipe.scales.length > 0 and we either use it directly or prepend
+		// scales is non-empty because recipe.scales.length > 0
 		const initialScale = scales[0];
 		initialScaleMult = initialScale!.mult;
 
