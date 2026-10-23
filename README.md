@@ -99,7 +99,11 @@ Edit any of the inputs — all dependent amounts recompute immediately.
 
 ## Scaling mode (`scales`)
 
-Provide a `scales` list and plain ingredients with fixed `value`s. kitchenForge renders one button per scale; clicking it multiplies every amount by `mult`. Each click scales from the original amounts (not the most recent ones), so flipping between scales is non-destructive. The scale with `mult: 1`, if present, is selected on render; otherwise an implicit `💯 1:1` button (the recipe as written) is added automatically and selected by default.
+Provide a `scales` list and plain ingredients with fixed `value`s. kitchenForge renders one button per scale; clicking it multiplies every amount by `mult`. Each click scales from the original amounts (not the most recent ones), so flipping between scales is non-destructive.
+
+**Scale selection:** The scale with `mult: 1`, if present, is selected on render. If no scale has `mult: 1`, an implicit `💯 1:1` button is appended at the **end** of the list, and the **first user-defined scale** is selected initially (with its multiplier applied).
+
+A `📏 ` label prefixes the scale button group; buttons themselves use `🎚 ` (unselected) and `✅ ` (selected) prefixes.
 
 ````markdown
 ```kitchenforge
@@ -201,17 +205,17 @@ A recipe that mixes `scales:` with any item carrying `id:` or `calc:` is rejecte
 | `unit` | top level | Default unit applied to items that don't override it. Defaults to `g`. |
 | `decimals` | top level | Decimal places for computed/scaled amounts. Defaults to `2`. |
 | `scales[]` | top level | `{name, mult}`. Mutually exclusive with `id`/`calc` items. |
-| `sections[]` | top level | `{name, items[]}`. |
+| `sections[]` | top level | `{name?, items[]}`. `name` is optional; unnamed sections render as a visual gap. |
 | `name` | item | Required. |
 | `value` | item | Number. Required for plain and `id` items; computed for `calc` items. |
 | `unit` | item | Overrides the recipe-level unit for this item. |
 | `id` | item | Exposes the item as an editable input. Other items can reference the id in `calc`. |
-| `calc` | item | Expression. Supports `+ - * /` and `@`. |
+| `calc` | item | Expression. Supports `+ - * /` and `@`. Operator `@` has same precedence as `*` and `/`. |
 | `round` | item | Snap computed/scaled amount to the nearest multiple of this step (e.g. `25`, `1`). Overrides `decimals`; a non-zero amount floors at one step. |
 
 ## Copy
 
-Every rendered block has a 📋 button at the top. Clicking it copies the current state of the recipe (with whatever values are currently shown) as Markdown to the clipboard.
+Every rendered block has a 📋 button at the top. Clicking it copies the **current rendered recipe** (with all calculated/scaled values filled in) as a clean Markdown list to the clipboard — handy for pasting into a note, shopping list, or message while cooking.
 
 ## Installation
 

@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "kitchen-forge",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "Interactive recipe blocks for Obsidian. Describe ingredients in YAML, then scale the whole recipe with one click or recompute dependent quantities live from formulas.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
@@ -13,7 +13,7 @@
 		"test:watch": "vitest"
 	},
 	"keywords": [],
-	"license": "0-BSD",
+	"license": "MIT",
 	"devDependencies": {
 		"@eslint/js": "9.30.1",
 		"@types/node": "^20.0.0",
