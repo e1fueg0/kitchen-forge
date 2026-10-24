@@ -69,7 +69,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 			copyCmp.setButtonText("✅");
 			copyCmp.setDisabled(true);
 
-			setTimeout(() => {
+			window.setTimeout(() => {
 				copyCmp.setButtonText(copyLabel);
 				copyCmp.setDisabled(false);
 			}, 1000);
@@ -113,7 +113,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 
 					applyScale(multBindings, scale.mult, decimals);
 
-					setTimeout(() => {
+					window.setTimeout(() => {
 						scaleCmp.setDisabled(false);
 					}, 1000);
 				} catch (e) {
