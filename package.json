@@ -31,5 +31,8 @@
 		"jsep": "^1.4.0",
 		"obsidian": "latest",
 		"yaml": "^2.9.0"
+	},
+	"overrides": {
+		"moment": "^2.31.0"
 	}
 }
