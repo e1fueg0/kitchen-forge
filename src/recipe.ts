@@ -12,7 +12,12 @@ export type Ingredient = {
 };
 
 export type Section = {
+	/** Visible section heading. For a choice variant this is the variant label. */
 	name: string;
+	/**
+	 * Optional choice-group label. Consecutive sections with the same value are
+	 * rendered as variants of one group; an interrupted run starts a new group.
+	 */
 	choice?: string;
 	items: Ingredient[];
 };

@@ -590,6 +590,7 @@ describe("workflow 3: choice groups", () => {
 		expect(toolbarButtons[0]!.textContent).toBe("📋");
 		expect(toolbarButtons[1]!.textContent).toBe("");
 		expect(toolbarButtons[1]!.getAttribute("data-icon")).toBe("eye");
+		expect(toolbarButtons[1]!.getAttribute("aria-label")).toBe("Show all variants");
 		expect(toolbarButtons[1]!.classList.contains("kf-show-all")).toBe(true);
 	});
 
@@ -651,6 +652,7 @@ describe("workflow 3: choice groups", () => {
 		const eye = getShowAllButton(block!);
 		expect(eye.getAttribute("data-icon")).toBe("eye-off");
 		expect(eye.getAttribute("aria-pressed")).toBe("true");
+		expect(eye.getAttribute("aria-label")).toBe("Show one variant per group");
 	});
 
 	it("restores the last selected variant when show-all is turned off", () => {
