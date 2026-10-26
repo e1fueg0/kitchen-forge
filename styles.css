@@ -10,6 +10,28 @@
 	margin-top: 12px;
 }
 
+.kf-choice-block {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+	padding: 5px;
+	margin-top: 4px;
+}
+
+.kf-choice-block button.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.kf-choice-variant-title {
+	margin: 12px 0 4px;
+}
+
+.kf-hidden {
+	display: none !important;
+}
+
 .kf-input {
 	width: 10ch;
 }

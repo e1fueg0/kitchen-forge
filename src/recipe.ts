@@ -13,8 +13,52 @@ export type Ingredient = {
 
 export type Section = {
 	name: string;
+	choice?: string;
 	items: Ingredient[];
 };
+
+// A recipe is rendered as an ordered list of blocks: standalone sections and
+// groups of consecutive sections that share a `choice` name. The same `choice`
+// appears twice in the source, separated by a plain section, produces two
+// independent groups.
+export type SectionGroup =
+	| { kind: "section"; section: Section }
+	| { kind: "choice"; title: string; variants: Section[] };
+
+function choiceTitle(section: Section): string | null {
+	const raw = section.choice;
+	if (typeof raw !== "string") return null;
+	const title = raw.trim();
+	return title.length > 0 ? title : null;
+}
+
+export function groupSections(sections: Section[]): SectionGroup[] {
+	const groups: SectionGroup[] = [];
+	let index = 0;
+
+	while (index < sections.length) {
+		const section = sections[index]!;
+		const title = choiceTitle(section);
+
+		if (title == null) {
+			groups.push({kind: "section", section});
+			index += 1;
+			continue;
+		}
+
+		const variants = [section];
+		let next = index + 1;
+		while (next < sections.length && choiceTitle(sections[next]!) === title) {
+			variants.push(sections[next]!);
+			next += 1;
+		}
+
+		groups.push({kind: "choice", title, variants});
+		index = next;
+	}
+
+	return groups;
+}
 
 export type Scale = {
 	name: string;
@@ -45,9 +89,9 @@ export type MultBinding = {
 	item: Ingredient;
 };
 
-export function formatRecipeToMarkdown(recipe: Recipe): string {
+export function formatSectionsToMarkdown(sections: Section[]): string {
 	const lines: string[] = [];
-	for (const section of recipe.sections) {
+	for (const section of sections) {
 		if (section.name) {
 			lines.push(`__${section.name}__`);
 			lines.push("");
@@ -62,6 +106,10 @@ export function formatRecipeToMarkdown(recipe: Recipe): string {
 		lines.push("");
 	}
 	return lines.join("\n");
+}
+
+export function formatRecipeToMarkdown(recipe: Recipe): string {
+	return formatSectionsToMarkdown(recipe.sections);
 }
 
 // Round a computed amount, honoring a per-item `round` step when present and

@@ -27,6 +27,8 @@ kitchenForge puts both workflows into Obsidian as a fenced `kitchenforge` block.
 
 > A block cannot mix `scales` with `id`/`calc`. kitchenForge reports an error instead of guessing.
 
+Sections can also be grouped into **choice groups** — radio-button variants of one component. Choice groups work in both modes.
+
 ## Calculation mode: ratios that follow the meat
 
 Mark the ingredients you want to edit with an `id`. Any ingredient with a `calc` expression can reference those ids. The expression is evaluated when the block renders and again on every input change. IDs must be unique across the whole recipe — they are shared variable names.
@@ -164,6 +166,44 @@ sections:
 
 The `📏` label prefixes the button row. The selected button starts with `✅`; the others start with `🎚`.
 
+## Choice groups: one component, several variants
+
+Some parts of a recipe exist in interchangeable versions: apple or cherry filling, lean or fatty mince, glaze or crumble. Mark consecutive sections with the same `choice` value to turn them into a radio group.
+
+````markdown
+```kitchenforge
+unit: g
+sections:
+  - name: 🥣 Dough
+    items:
+      - name: Flour
+        value: 400
+
+  - choice: Filling
+    name: 🍎 Apple
+    items:
+      - name: Apples
+        value: 500
+
+  - choice: Filling
+    name: 🍒 Cherry
+    items:
+      - name: Cherries
+        value: 400
+```
+````
+
+- `choice` is the group label; use the same text on every variant.
+- Sections are grouped only when they are **consecutive**. A plain section in between starts a new group, even if the label repeats.
+- The **first variant** is selected when the block renders.
+- `●` marks the selected variant, `○` the others. Clicking a button shows that variant.
+- `👁 All` shows every variant at once with `h4` sub-headings; `👁 One` returns to a single variant.
+- The selected **scale survives switching**: click Half, switch from Apple to Cherry, and Cherry is already halved.
+- Formulas keep working across variants: a `calc` in a hidden variant is still evaluated, so switching never shows stale numbers.
+- Copying (📋) follows what is on screen: only the selected variant, or every variant while `👁 All` is active.
+
+Groups are independent: two different `choice` labels produce two button rows.
+
 ## Rounding
 
 `decimals` controls decimal places for computed and scaled values. It defaults to `2`.
@@ -192,7 +232,8 @@ A non-zero amount never becomes `0`: it stays at least one step in the same dire
 | `unit` | top level | No | Default unit for items that don't override it. Defaults to `g`. Display-only: kitchenForge does **not** convert units. |
 | `decimals` | top level | No | Decimal places for computed and scaled amounts. Defaults to `2`. |
 | `scales[]` | top level | No | List of `{name, mult}`. Mutually exclusive with `id`/`calc` items. |
-| `sections[]` | top level | **Yes** | List of `{name?, items[]}`. A section without a name renders as a visual gap (except at the top). |
+| `sections[]` | top level | **Yes** | List of `{name?, choice?, items[]}`. A section without a name renders as a visual gap (except at the top). |
+| `choice` | section | No | Group label for variant sections. Consecutive sections with the same `choice` form a radio group; the first is shown initially. |
 | `name` | item | **Yes** | Ingredient name. |
 | `value` | item | Yes for plain and `id` items | Number. Ignored when `calc` is present. |
 | `unit` | item | No | Overrides the recipe-level unit for this item. Display-only. |
@@ -203,6 +244,8 @@ A non-zero amount never becomes `0`: it stays at least one step in the same dire
 ## Copy the current recipe
 
 Every rendered block has a 📋 button at the top. It copies the **currently displayed recipe** — with calculated or scaled values filled in — as a clean Markdown list. The button turns into ✅ for a second.
+
+When a choice group is visible, the copy follows the current view: the selected variant only, or all variants when `👁 All` is active.
 
 This is handy for pasting into a note, a shopping list, or a message while cooking. Copying never rewrites your YAML source. The button only writes to the clipboard when clicked; kitchenForge never reads clipboard contents.
 
@@ -240,7 +283,7 @@ Download `main.js`, `manifest.json` and `styles.css` from the [latest release](h
 ```sh
 npm install
 npm run dev      # esbuild in watch mode
-npm test         # vitest, 94 tests
+npm test         # vitest, 117 tests
 npm run lint
 npm run build    # type-check + production bundle
 ```

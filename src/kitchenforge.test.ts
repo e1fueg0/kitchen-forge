@@ -482,6 +482,361 @@ describe("workflow 2b: per-item round", () => {
 	});
 });
 
+function getChoiceGroups(block: HTMLElement): HTMLElement[] {
+	return Array.from(block.querySelectorAll<HTMLElement>(".kf-choice-group"));
+}
+
+function getChoiceButtons(block: HTMLElement, groupIndex = 0): HTMLButtonElement[] {
+	const group = getChoiceGroups(block)[groupIndex];
+	return group ? Array.from(group.querySelectorAll<HTMLButtonElement>(".kf-choice-block button")) : [];
+}
+
+function clickChoice(block: HTMLElement, label: string, groupIndex = 0): HTMLButtonElement {
+	const button = getChoiceButtons(block, groupIndex).find(b => b.textContent?.includes(label));
+	if (!button) throw new Error(`Choice button not found: ${label}`);
+	button.click();
+	return button;
+}
+
+function visibleVariants(block: HTMLElement, groupIndex = 0): HTMLElement[] {
+	const group = getChoiceGroups(block)[groupIndex];
+	if (!group) return [];
+	return Array.from(group.querySelectorAll<HTMLElement>(".kf-choice-variant"))
+		.filter(variant => !variant.classList.contains("kf-hidden"));
+}
+
+function variantValue(wrapper: HTMLElement): string {
+	return wrapper.querySelector("li b")?.firstElementChild?.textContent ?? "";
+}
+
+async function copyRecipe(block: HTMLElement): Promise<string> {
+	let copied = "";
+	const original = navigator.clipboard;
+	Object.defineProperty(navigator, "clipboard", {
+		value: {writeText: vi.fn(async (text: string) => {
+			copied = text;
+		})},
+		configurable: true,
+	});
+	try {
+		const button = Array.from(block.querySelectorAll("button")).find(b => b.textContent === "📋");
+		if (!button) throw new Error("Copy button not found");
+		button.click();
+		await new Promise(resolve => setTimeout(resolve, 0));
+	} finally {
+		Object.defineProperty(navigator, "clipboard", {value: original, configurable: true});
+	}
+	return copied;
+}
+
+const choiceRecipe = `
+unit: г
+sections:
+  - name: 🧂 Основа
+    items:
+      - name: Соль
+        value: 10
+
+  - choice: Начинка
+    name: 🍎 Яблоко
+    items:
+      - name: Яблоки
+        value: 500
+
+  - choice: Начинка
+    name: 🍒 Вишня
+    items:
+      - name: Вишня
+        value: 400
+
+  - name: 🥣 Финиш
+    items:
+      - name: Сахар
+        value: 20
+`;
+
+describe("workflow 3: choice groups", () => {
+	it("renders the choice name as a heading and a button per variant plus a show-all toggle", () => {
+		const block = render(choiceRecipe);
+		expect(block).not.toBeNull();
+		expect(getChoiceGroups(block!).length).toBe(1);
+		expect(getChoiceGroups(block!)[0]!.querySelector("h3")!.textContent).toBe("Начинка");
+
+		const buttons = getChoiceButtons(block!);
+		expect(buttons.length).toBe(3);
+		expect(buttons[0]!.textContent).toContain("🍎 Яблоко");
+		expect(buttons[1]!.textContent).toContain("🍒 Вишня");
+		expect(buttons[2]!.textContent).toContain("All");
+	});
+
+	it("keeps non-choice sections around the group and renders them as usual", () => {
+		const block = render(choiceRecipe);
+		const headings = Array.from(block!.querySelectorAll("h3")).map(h => h.textContent);
+		expect(headings).toEqual(["🧂 Основа", "Начинка", "🥣 Финиш"]);
+	});
+
+	it("shows only the first variant by default and hides its sub-heading", () => {
+		const block = render(choiceRecipe);
+		const visible = visibleVariants(block!);
+		expect(visible.length).toBe(1);
+		expect(visible[0]!.textContent).toContain("Яблоки");
+		expect(visible[0]!.textContent).not.toContain("Вишня");
+		expect(visible[0]!.querySelector("h4")!.classList.contains("kf-hidden")).toBe(true);
+	});
+
+	it("marks the first variant as selected and exposes the state to assistive tech", () => {
+		const block = render(choiceRecipe);
+		const buttons = getChoiceButtons(block!);
+		expect(buttons[0]!.textContent?.startsWith("●")).toBe(true);
+		expect(buttons[1]!.textContent?.startsWith("○")).toBe(true);
+		expect(buttons[0]!.getAttribute("aria-pressed")).toBe("true");
+		expect(buttons[1]!.getAttribute("aria-pressed")).toBe("false");
+	});
+
+	it("switches to another variant when its button is clicked", () => {
+		const block = render(choiceRecipe);
+		clickChoice(block!, "🍒 Вишня");
+
+		const visible = visibleVariants(block!);
+		expect(visible.length).toBe(1);
+		expect(visible[0]!.textContent).toContain("Вишня");
+		expect(visible[0]!.textContent).not.toContain("Яблоки");
+
+		const buttons = getChoiceButtons(block!);
+		expect(buttons[0]!.textContent?.startsWith("○")).toBe(true);
+		expect(buttons[1]!.textContent?.startsWith("●")).toBe(true);
+	});
+
+	it("shows every variant with h4 sub-headings in show-all mode", () => {
+		const block = render(choiceRecipe);
+		clickChoice(block!, "All");
+
+		const visible = visibleVariants(block!);
+		expect(visible.length).toBe(2);
+		const headings = visible.map(variant => variant.querySelector("h4"));
+		expect(headings.map(h => h?.textContent)).toEqual(["🍎 Яблоко", "🍒 Вишня"]);
+		expect(headings.every(h => h != null && !h.classList.contains("kf-hidden"))).toBe(true);
+
+		const allButton = getChoiceButtons(block!)[2];
+		expect(allButton!.textContent).toContain("One");
+	});
+
+	it("collapses show-all back to the selected variant", () => {
+		const block = render(choiceRecipe);
+		clickChoice(block!, "All");
+		clickChoice(block!, "One");
+
+		const visible = visibleVariants(block!);
+		expect(visible.length).toBe(1);
+		expect(visible[0]!.textContent).toContain("Яблоки");
+		expect(visible[0]!.querySelector("h4")!.classList.contains("kf-hidden")).toBe(true);
+	});
+
+	it("collapses show-all onto the variant clicked while all are visible", () => {
+		const block = render(choiceRecipe);
+		clickChoice(block!, "All");
+		clickChoice(block!, "🍒 Вишня");
+
+		const visible = visibleVariants(block!);
+		expect(visible.length).toBe(1);
+		expect(visible[0]!.textContent).toContain("Вишня");
+	});
+
+	it("copies only the visible variant in single-variant mode", async () => {
+		const block = render(choiceRecipe);
+		const copied = await copyRecipe(block!);
+
+		expect(copied).toContain("__🧂 Основа__");
+		expect(copied).toContain("__🍎 Яблоко__");
+		expect(copied).not.toContain("__🍒 Вишня__");
+		expect(copied).toContain("__🥣 Финиш__");
+	});
+
+	it("copies every variant in show-all mode", async () => {
+		const block = render(choiceRecipe);
+		clickChoice(block!, "All");
+		const copied = await copyRecipe(block!);
+
+		expect(copied).toContain("__🍎 Яблоко__");
+		expect(copied).toContain("__🍒 Вишня__");
+	});
+
+	it("copies each group according to its own single/show-all mode", async () => {
+		const source = `
+unit: г
+sections:
+  - choice: Начинка
+    name: Яблоко
+    items:
+      - name: Яблоки
+        value: 1
+  - choice: Начинка
+    name: Вишня
+    items:
+      - name: Вишня
+        value: 2
+  - choice: Покрытие
+    name: Глазурь
+    items:
+      - name: Сахар
+        value: 3
+  - choice: Покрытие
+    name: Пудра
+    items:
+      - name: Пудра
+        value: 4
+`;
+		const block = render(source);
+		clickChoice(block!, "Вишня", 0);
+		clickChoice(block!, "All", 1);
+
+		const copied = await copyRecipe(block!);
+		expect(copied).not.toContain("__Яблоко__");
+		expect(copied).toContain("__Вишня__");
+		expect(copied).toContain("__Глазурь__");
+		expect(copied).toContain("__Пудра__");
+	});
+
+	it("keeps separate state for each choice group", () => {
+		const source = `
+unit: г
+sections:
+  - choice: Начинка
+    name: Яблоко
+    items:
+      - name: Яблоки
+        value: 1
+  - choice: Начинка
+    name: Вишня
+    items:
+      - name: Вишня
+        value: 2
+  - name: Пауза
+    items:
+      - name: Вода
+        value: 3
+  - choice: Покрытие
+    name: Глазурь
+    items:
+      - name: Сахар
+        value: 4
+  - choice: Покрытие
+    name: Пудра
+    items:
+      - name: Пудра
+        value: 5
+`;
+		const block = render(source);
+		expect(getChoiceGroups(block!).length).toBe(2);
+
+		clickChoice(block!, "Вишня", 0);
+		expect(visibleVariants(block!, 0)[0]!.textContent).toContain("Вишня");
+		expect(visibleVariants(block!, 1)[0]!.textContent).toContain("Глазурь");
+
+		clickChoice(block!, "Пудра", 1);
+		expect(visibleVariants(block!, 1)[0]!.textContent).toContain("Пудра");
+		expect(visibleVariants(block!, 0)[0]!.textContent).toContain("Вишня");
+	});
+
+	it("keeps the selected scale when switching variants", () => {
+		const source = `
+unit: г
+decimals: 1
+scales:
+  - name: Полный
+    mult: 1
+  - name: Половина
+    mult: .5
+sections:
+  - name: Тесто
+    items:
+      - name: Мука
+        value: 400
+  - choice: Начинка
+    name: Орехи
+    items:
+      - name: Орехи
+        value: 80
+  - choice: Начинка
+    name: Джем
+    items:
+      - name: Джем
+        value: 40
+`;
+		const block = render(source);
+		getScaleButtons(block!).find(b => b.textContent?.includes("Половина"))!.click();
+
+		expect(variantValue(visibleVariants(block!)[0]!)).toBe("40");
+
+		clickChoice(block!, "Джем");
+		expect(variantValue(visibleVariants(block!)[0]!)).toBe("20");
+
+		// The scale row still shows the same choice after switching variants.
+		const half = getScaleButtons(block!).find(b => b.textContent?.includes("Половина"))!;
+		expect(half.textContent?.startsWith("✅")).toBe(true);
+
+		getScaleButtons(block!).find(b => b.textContent?.includes("Полный"))!.click();
+		expect(variantValue(visibleVariants(block!)[0]!)).toBe("40");
+		clickChoice(block!, "Орехи");
+		expect(variantValue(visibleVariants(block!)[0]!)).toBe("80");
+	});
+
+	it("recalculates formulas inside hidden variants and keeps values when switching", () => {
+		const source = `
+unit: г
+sections:
+  - name: Мясо
+    items:
+      - name: Свинина
+        id: pork
+        value: 800
+  - choice: Приправа
+    name: Солёная
+    items:
+      - name: Соль
+        calc: pork @ 20
+  - choice: Приправа
+    name: Перчёная
+    items:
+      - name: Перец
+        calc: pork @ 10
+`;
+		const block = render(source);
+		expect(variantValue(visibleVariants(block!)[0]!)).toBe("16");
+
+		const input = block!.querySelector("input")!;
+		input.value = "1000";
+		input.dispatchEvent(new Event("input"));
+
+		const variants = getChoiceGroups(block!)[0]!.querySelectorAll<HTMLElement>(".kf-choice-variant");
+		expect(variantValue(variants[1]!)).toBe("10");
+
+		clickChoice(block!, "Перчёная");
+		expect(variantValue(visibleVariants(block!)[0]!)).toBe("10");
+		clickChoice(block!, "Солёная");
+		expect(variantValue(visibleVariants(block!)[0]!)).toBe("20");
+	});
+
+	it("renders a choice field once and does not add a toolbar for blank/absent choices", () => {
+		const source = `
+unit: г
+sections:
+  - name: A
+    items:
+      - name: x
+        value: 1
+  - name: B
+    choice: "   "
+    items:
+      - name: y
+        value: 2
+`;
+		const block = render(source);
+		expect(getChoiceGroups(block!).length).toBe(0);
+		expect(block!.querySelectorAll("h3").length).toBe(2);
+	});
+});
+
 describe("error handling", () => {
 	it("renders a .kf-error paragraph for malformed YAML", () => {
 		render("this is: not\n  valid: yaml: ::");

@@ -27,6 +27,8 @@ kitchenForge réunit les deux dans Obsidian sous forme de bloc `kitchenforge`. L
 
 > Un bloc ne peut pas mélanger `scales` avec `id`/`calc`. kitchenForge affiche une erreur au lieu de deviner.
 
+Les sections peuvent aussi former des **groupes de choix** — des variantes d'un même composant, sélectionnables par boutons radio. Les groupes de choix fonctionnent dans les deux modes.
+
 ## Mode calcul : des ratios qui suivent la viande
 
 Marquez les ingrédients que vous voulez modifier avec un `id`. Tout ingrédient qui possède une expression `calc` peut référencer ces ids. L'expression est évaluée à l'affichage du bloc, puis à chaque modification d'un champ. Les ids doivent être uniques dans toute la recette : ce sont des noms de variables partagés.
@@ -166,6 +168,44 @@ sections:
 
 Le libellé `📏` précède la rangée de boutons. Le bouton sélectionné commence par `✅`, les autres par `🎚`.
 
+## Groupes de choix : un composant, plusieurs variantes
+
+Certaines parties d'une recette existent en versions interchangeables : garniture aux pommes ou aux cerises, viande maigre ou grasse, glaçage ou crumble. Marquez des sections consécutives avec la même valeur `choice` pour les transformer en groupe de boutons radio.
+
+````markdown
+```kitchenforge
+unit: g
+sections:
+  - name: 🥣 Pâte
+    items:
+      - name: Farine
+        value: 400
+
+  - choice: Garniture
+    name: 🍎 Pommes
+    items:
+      - name: Pommes
+        value: 500
+
+  - choice: Garniture
+    name: 🍒 Cerises
+    items:
+      - name: Cerises
+        value: 400
+```
+````
+
+- `choice` est le libellé du groupe ; utilisez le même texte sur toutes les variantes.
+- Les sections ne sont groupées que si elles sont **consécutives**. Une section ordinaire intercalée commence un nouveau groupe, même si le libellé se répète.
+- La **première variante** est sélectionnée à l'affichage.
+- `●` marque la variante sélectionnée, `○` les autres. Un clic affiche la variante choisie.
+- `👁 All` affiche toutes les variantes avec des sous-titres `h4` ; `👁 One` revient à une seule variante.
+- L'**échelle sélectionnée est conservée** : cliquez sur Moitié, passez de Pommes à Cerises, et Cerises est déjà divisée par deux.
+- Les formules continuent de fonctionner entre les variantes : un `calc` dans une variante masquée est quand même évalué, donc aucun nombre périmé au changement.
+- La copie (📋) suit ce qui est affiché : uniquement la variante sélectionnée, ou toutes les variantes quand `👁 All` est actif.
+
+Les groupes sont indépendants : deux libellés `choice` différents créent deux rangées de boutons.
+
 ## Arrondis
 
 `decimals` contrôle le nombre de décimales pour les valeurs calculées et mises à l'échelle. La valeur par défaut est `2`.
@@ -194,7 +234,8 @@ Une quantité non nulle ne devient jamais `0` : elle reste au minimum à un pas,
 | `unit` | niveau racine | Non | Unité par défaut des ingrédients qui n'en ont pas. `g` par défaut. Affichage uniquement : kitchenForge ne **convertit pas** les unités. |
 | `decimals` | niveau racine | Non | Nombre de décimales pour les valeurs calculées et mises à l'échelle. `2` par défaut. |
 | `scales[]` | niveau racine | Non | Liste de `{name, mult}`. Incompatible avec les ingrédients `id`/`calc`. |
-| `sections[]` | niveau racine | **Oui** | Liste de `{name?, items[]}`. Une section sans nom crée un espace visuel (sauf en haut). |
+| `sections[]` | niveau racine | **Oui** | Liste de `{name?, choice?, items[]}`. Une section sans nom crée un espace visuel (sauf en haut). |
+| `choice` | section | Non | Libellé de groupe pour les variantes. Les sections consécutives ayant le même `choice` forment un groupe de boutons radio ; la première est affichée au départ. |
 | `name` | ingrédient | **Oui** | Nom de l'ingrédient. |
 | `value` | ingrédient | Oui pour les ingrédients simples et `id` | Nombre. Ignorée si `calc` est présent. |
 | `unit` | ingrédient | Non | Remplace l'unité de la recette pour cet ingrédient. Affichage uniquement. |
@@ -205,6 +246,8 @@ Une quantité non nulle ne devient jamais `0` : elle reste au minimum à un pas,
 ## Copier la recette affichée
 
 Chaque bloc affiché possède un bouton 📋 en haut. Il copie la **recette actuellement affichée** — avec les valeurs calculées ou mises à l'échelle — sous forme de liste Markdown propre. Le bouton devient ✅ pendant une seconde.
+
+Quand un groupe de choix est affiché, la copie suit la vue courante : uniquement la variante sélectionnée, ou toutes les variantes quand `👁 All` est actif.
 
 C'est pratique pour coller la recette dans une note, une liste de courses ou un message pendant la cuisson. La copie ne modifie jamais votre source YAML. Le bouton n'écrit dans le presse-papiers que lorsqu'on clique dessus ; kitchenForge ne lit jamais son contenu.
 
@@ -242,7 +285,7 @@ Téléchargez `main.js`, `manifest.json` et `styles.css` depuis la [dernière ve
 ```sh
 npm install
 npm run dev      # esbuild en mode watch
-npm test         # vitest, 94 tests
+npm test         # vitest, 117 tests
 npm run lint
 npm run build    # vérification TypeScript + bundle de production
 ```

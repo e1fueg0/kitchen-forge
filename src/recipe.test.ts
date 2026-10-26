@@ -7,11 +7,14 @@ import {
 	CalcBinding,
 	findDuplicateId,
 	formatRecipeToMarkdown,
+	formatSectionsToMarkdown,
+	groupSections,
 	Ingredient,
 	MultBinding,
 	prefillVars,
 	recalcCalcBindings,
 	Recipe,
+	Section,
 } from "./recipe";
 
 beforeAll(() => {
@@ -186,6 +189,76 @@ describe("recalcCalcBindings", () => {
 		recalcCalcBindings([a.binding], {flour: 137}, 2); // 0.274 → nearest 0.5, floored to 0.5
 		expect(a.el.setText).toHaveBeenCalledWith("0.5");
 		expect(a.item.value).toBe(0.5);
+	});
+});
+
+describe("formatSectionsToMarkdown", () => {
+	it("formats only the sections passed in", () => {
+		const sections: Section[] = [
+			{name: "A", items: [{name: "x", value: 1, unit: "g"}]},
+			{name: "B", items: [{name: "y", value: 2, unit: "g"}]},
+		];
+		expect(formatSectionsToMarkdown([sections[1]!])).toBe(
+			"__B__\n\n 1. y: **2 g**\n",
+		);
+	});
+
+	it("returns an empty string for no sections", () => {
+		expect(formatSectionsToMarkdown([])).toBe("");
+	});
+});
+
+describe("groupSections", () => {
+	const plain = (name: string): Section => ({name, items: []});
+	const variant = (name: string, choice?: string): Section => ({name, choice, items: []});
+
+	it("keeps plain sections in order when no section has a choice", () => {
+		const sections = [plain("A"), plain("B")];
+		expect(groupSections(sections)).toEqual([
+			{kind: "section", section: sections[0]},
+			{kind: "section", section: sections[1]},
+		]);
+	});
+
+	it("groups consecutive sections that share a choice name", () => {
+		const sections = [plain("Base"), variant("Apple", "Filling"), variant("Cherry", "Filling"), plain("Finish")];
+		expect(groupSections(sections)).toEqual([
+			{kind: "section", section: sections[0]},
+			{kind: "choice", title: "Filling", variants: [sections[1], sections[2]]},
+			{kind: "section", section: sections[3]},
+		]);
+	});
+
+	it("starts a new group when the choice name changes", () => {
+		const sections = [variant("Apple", "Filling"), variant("Crumble", "Topping")];
+		expect(groupSections(sections)).toEqual([
+			{kind: "choice", title: "Filling", variants: [sections[0]]},
+			{kind: "choice", title: "Topping", variants: [sections[1]]},
+		]);
+	});
+
+	it("keeps repeated choice names separate when a plain section interrupts them", () => {
+		const sections = [variant("Apple", "Filling"), plain("Pause"), variant("Cherry", "Filling")];
+		expect(groupSections(sections)).toEqual([
+			{kind: "choice", title: "Filling", variants: [sections[0]]},
+			{kind: "section", section: sections[1]},
+			{kind: "choice", title: "Filling", variants: [sections[2]]},
+		]);
+	});
+
+	it("trims choice names and treats blank ones as plain sections", () => {
+		const sections = [variant("Apple", "  Filling  "), variant("Cherry", "Filling"), variant("Loose", "   ")];
+		expect(groupSections(sections)).toEqual([
+			{kind: "choice", title: "Filling", variants: [sections[0], sections[1]]},
+			{kind: "section", section: sections[2]},
+		]);
+	});
+
+	it("keeps a single marked section as a one-variant group", () => {
+		const sections = [variant("Only", "Filling")];
+		expect(groupSections(sections)).toEqual([
+			{kind: "choice", title: "Filling", variants: [sections[0]]},
+		]);
 	});
 });
 
