@@ -21,7 +21,6 @@ const SELECTED_PREFIX = "✅ ";
 const ORIGINAL_SCALE_NAME = "💯 1:1";
 const CHOICE_SELECTED_PREFIX = "● ";
 const CHOICE_PREFIX = "○ ";
-const SHOW_ALL_GLYPH = "👁";
 
 const HIDDEN_CLASS = "kf-hidden";
 
@@ -130,7 +129,8 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 	const updateShowAllButton = () => {
 		if (showAllCmp == null) return;
 		const label = showAll ? "Show one variant per group" : "Show all variants";
-		showAllCmp.buttonEl.classList.toggle("kf-show-all-off", showAll);
+		showAllCmp.buttonEl.replaceChildren();
+		showAllCmp.setIcon(showAll ? "eye-off" : "eye");
 		showAllCmp.buttonEl.setAttribute("aria-pressed", String(showAll));
 		showAllCmp.buttonEl.setAttribute("aria-expanded", String(showAll));
 		showAllCmp.buttonEl.setAttribute("aria-label", label);
@@ -140,7 +140,6 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 	if (hasChoiceGroups) {
 		showAllCmp = new ButtonComponent(toolbarEl);
 		showAllCmp.buttonEl.classList.add("kf-show-all");
-		showAllCmp.setButtonText(SHOW_ALL_GLYPH);
 		showAllCmp.onClick(() => {
 			showAll = !showAll;
 			for (const sync of choiceSyncers) sync(showAll);
@@ -274,7 +273,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 				const entry = rendered[i]!;
 				setVisible(entry.wrapper, showAll || i === activeIndex);
 				// Show-all drops the group title and switchers, so the composite
-				// "Group -> Variant" heading carries the context instead.
+				// "Group → Variant" heading carries the context instead.
 				setVisible(entry.heading, showAll);
 			}
 		};

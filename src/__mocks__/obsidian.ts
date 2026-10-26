@@ -15,6 +15,12 @@ export class ButtonComponent {
 		return this;
 	}
 
+	setIcon(icon: string): this {
+		this.buttonEl.textContent = "";
+		this.buttonEl.setAttribute("data-icon", icon);
+		return this;
+	}
+
 	onClick(cb: () => void): this {
 		this._onClick = cb;
 		return this;

@@ -32,14 +32,14 @@ function choiceTitle(section: Section): string | null {
 	return title.length > 0 ? title : null;
 }
 
-// Sections inside a choice group are addressed as "Group -> Variant". The
+// Sections inside a choice group are addressed as "Group → Variant". The
 // composite name is used in copied Markdown and in show-all headings, where
 // the group label is no longer visible next to the section.
 export function sectionDisplayName(name: string, choice?: string): string {
 	const group = typeof choice === "string" ? choice.trim() : "";
 	if (group.length === 0) return name;
 	const variant = name?.trim() ?? "";
-	return variant.length > 0 ? `${group} -> ${variant}` : group;
+	return variant.length > 0 ? `${group} → ${variant}` : group;
 }
 
 export function groupSections(sections: Section[]): SectionGroup[] {

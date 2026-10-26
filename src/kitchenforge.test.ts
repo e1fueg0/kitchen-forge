@@ -588,7 +588,8 @@ describe("workflow 3: choice groups", () => {
 		const toolbarButtons = Array.from(block!.querySelectorAll<HTMLButtonElement>(".kf-toolbar button"));
 		expect(toolbarButtons.length).toBe(2);
 		expect(toolbarButtons[0]!.textContent).toBe("📋");
-		expect(toolbarButtons[1]!.textContent).toBe("👁");
+		expect(toolbarButtons[1]!.textContent).toBe("");
+		expect(toolbarButtons[1]!.getAttribute("data-icon")).toBe("eye");
 		expect(toolbarButtons[1]!.classList.contains("kf-show-all")).toBe(true);
 	});
 
@@ -640,15 +641,15 @@ describe("workflow 3: choice groups", () => {
 		expect(visible.length).toBe(2);
 		const headings = visible.map(variant => variant.querySelector("h4"));
 		expect(headings.map(h => h?.textContent)).toEqual([
-			"Начинка -> 🍎 Яблоко",
-			"Начинка -> 🍒 Вишня",
+			"Начинка → 🍎 Яблоко",
+			"Начинка → 🍒 Вишня",
 		]);
 		expect(headings.every(h => !isHidden(h))).toBe(true);
 		expect(isHidden(getChoiceTitle(block!))).toBe(true);
 		expect(isHidden(getChoicePicker(block!))).toBe(true);
 
 		const eye = getShowAllButton(block!);
-		expect(eye.classList.contains("kf-show-all-off")).toBe(true);
+		expect(eye.getAttribute("data-icon")).toBe("eye-off");
 		expect(eye.getAttribute("aria-pressed")).toBe("true");
 	});
 
@@ -665,7 +666,7 @@ describe("workflow 3: choice groups", () => {
 		expect(isHidden(visible[0]!.querySelector("h4"))).toBe(true);
 		expect(isHidden(getChoiceTitle(block!))).toBe(false);
 		expect(isHidden(getChoicePicker(block!))).toBe(false);
-		expect(getShowAllButton(block!).classList.contains("kf-show-all-off")).toBe(false);
+		expect(getShowAllButton(block!).getAttribute("data-icon")).toBe("eye");
 	});
 
 	it("composes the choice and variant names with an arrow", () => {
@@ -681,7 +682,7 @@ sections:
 		const block = render(source);
 		getShowAllButton(block!).click();
 		const heading = visibleVariants(block!)[0]!.querySelector("h4");
-		expect(heading!.textContent).toBe("Ягодная база -> конфитюрный вариант");
+		expect(heading!.textContent).toBe("Ягодная база → конфитюрный вариант");
 	});
 
 	it("toggles show-all globally across every choice group", () => {
@@ -734,8 +735,8 @@ sections:
 		const copied = await copyRecipe(block!);
 
 		expect(copied).toContain("__🧂 Основа__");
-		expect(copied).toContain("__Начинка -> 🍎 Яблоко__");
-		expect(copied).not.toContain("__Начинка -> 🍒 Вишня__");
+		expect(copied).toContain("__Начинка → 🍎 Яблоко__");
+		expect(copied).not.toContain("__Начинка → 🍒 Вишня__");
 		expect(copied).toContain("__🥣 Финиш__");
 	});
 
@@ -744,8 +745,8 @@ sections:
 		getShowAllButton(block!).click();
 		const copied = await copyRecipe(block!);
 
-		expect(copied).toContain("__Начинка -> 🍎 Яблоко__");
-		expect(copied).toContain("__Начинка -> 🍒 Вишня__");
+		expect(copied).toContain("__Начинка → 🍎 Яблоко__");
+		expect(copied).toContain("__Начинка → 🍒 Вишня__");
 	});
 
 	it("keeps separate state for each choice group", () => {
