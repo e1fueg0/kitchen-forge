@@ -1,0 +1,328 @@
+:root {
+	color-scheme: dark;
+	--bg: #141414;
+	--note: #1e1e1e;
+	--note-border: #303030;
+	--card: #242424;
+	--card-border: #373737;
+	--text: #e8e8e8;
+	--muted: #9a9a9a;
+	--faint: #747474;
+	--purple: #a78bfa;
+	--purple-strong: #7c3aed;
+	--green: #6ee7a8;
+	--mono: "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	min-height: 100vh;
+	display: flex;
+	justify-content: center;
+	align-items: flex-start;
+	padding: 44px 24px;
+	background:
+		radial-gradient(900px 520px at 18% -10%, rgba(124, 58, 237, 0.16), transparent 62%),
+		radial-gradient(760px 460px at 88% 0%, rgba(68, 207, 110, 0.08), transparent 60%),
+		var(--bg);
+	color: var(--text);
+	font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Inter", Roboto, sans-serif;
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+}
+
+.note {
+	width: 900px;
+	padding: 50px 56px 36px;
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 220px), var(--note);
+	border: 1px solid var(--note-border);
+	border-radius: 18px;
+	box-shadow:
+		0 30px 80px rgba(0, 0, 0, 0.42),
+		0 2px 0 rgba(255, 255, 255, 0.03) inset;
+}
+
+.note-head {
+	padding-bottom: 4px;
+}
+
+.crumbs {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--faint);
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.11em;
+	text-transform: uppercase;
+}
+
+.slash {
+	color: #4a4a4a;
+	font-weight: 400;
+}
+
+.note h1 {
+	margin: 10px 0 7px;
+	color: #f5f5f5;
+	font-size: 34px;
+	font-weight: 700;
+	letter-spacing: -0.03em;
+	line-height: 1.1;
+}
+
+.lede {
+	margin: 0;
+	color: var(--muted);
+	font-size: 15px;
+	line-height: 1.5;
+}
+
+.demo-section {
+	margin-top: 38px;
+}
+
+.demo-section + .demo-section {
+	margin-top: 34px;
+	padding-top: 32px;
+	border-top: 1px solid #2c2c2c;
+}
+
+.section-kicker {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--purple);
+	font-size: 10.5px;
+	font-weight: 700;
+	letter-spacing: 0.15em;
+	line-height: 1;
+}
+
+.dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--purple);
+	box-shadow: 0 0 12px rgba(167, 139, 250, 0.55);
+}
+
+.dot-green {
+	background: var(--green);
+	box-shadow: 0 0 12px rgba(110, 231, 168, 0.45);
+}
+
+.section-title-row {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	margin: 9px 0 3px;
+}
+
+.note h2 {
+	margin: 0;
+	color: #f1f1f1;
+	font-size: 22px;
+	font-weight: 650;
+	letter-spacing: -0.02em;
+	line-height: 1.2;
+}
+
+.pill {
+	padding: 3px 8px 4px;
+	color: #c4b5fd;
+	background: rgba(167, 139, 250, 0.11);
+	border: 1px solid rgba(167, 139, 250, 0.24);
+	border-radius: 999px;
+	font-family: var(--mono);
+	font-size: 10.5px;
+	font-weight: 600;
+	line-height: 1;
+	white-space: nowrap;
+}
+
+.desc {
+	margin: 0 0 14px;
+	color: var(--muted);
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+/* The plugin's own .kf-block rules are loaded from ../styles.css.
+   These declarations only add the surrounding Obsidian-like chrome. */
+.kf-block {
+	position: relative;
+	padding: 15px 18px 16px;
+	background: var(--card);
+	border-color: var(--card-border);
+	box-shadow:
+		0 14px 34px rgba(0, 0, 0, 0.16),
+		0 1px 0 rgba(255, 255, 255, 0.025) inset;
+}
+
+.copy-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 28px;
+	margin: 0 0 7px;
+	padding: 0;
+	color: #d4d4d4;
+	background: #2c2c2c;
+	border: 1px solid #3c3c3c;
+	border-radius: 6px;
+	box-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
+	font: 14px/1 "Segoe UI Emoji", "Apple Color Emoji", sans-serif;
+	cursor: pointer;
+}
+
+.copy-btn:hover {
+	background: #353535;
+}
+
+.kf-block h3 {
+	margin: 16px 0 5px;
+	color: #ededed;
+	font-size: 15px;
+	font-weight: 650;
+	letter-spacing: -0.01em;
+	line-height: 1.35;
+}
+
+.kf-block h3:first-of-type {
+	margin-top: 2px;
+}
+
+.kf-block ol {
+	margin: 0;
+	padding-left: 1.45em;
+	color: #bdbdbd;
+	font-size: 14.5px;
+	line-height: 1.72;
+}
+
+.kf-block li {
+	padding-left: 2px;
+}
+
+.kf-block li::marker {
+	color: #777;
+	font-variant-numeric: tabular-nums;
+}
+
+.kf-block b {
+	color: #f4f4f4;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.kf-input {
+	width: 9.5ch;
+	height: 26px;
+	margin: 0 1px;
+	padding: 2px 6px;
+	color: #fff;
+	background: #191919;
+	border: 1px solid #3d3d3d;
+	border-radius: 5px;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18) inset;
+	font: 13.5px/1 "Segoe UI", -apple-system, BlinkMacSystemFont, "Inter", Roboto, sans-serif;
+	text-align: left;
+	outline: none;
+	vertical-align: baseline;
+}
+
+.kf-input:focus {
+	border-color: var(--purple-strong);
+	box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.22);
+}
+
+.kf-input::-webkit-inner-spin-button,
+.kf-input::-webkit-outer-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+.unit {
+	color: #8f8f8f;
+	font-weight: 400;
+}
+
+.kf-scale-block {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 0 0 12px;
+	padding: 1px 0 3px;
+}
+
+.scale-label {
+	margin-right: 2px;
+	color: #8f8f8f;
+	font-size: 14px;
+	line-height: 1;
+}
+
+.scale-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	height: 29px;
+	padding: 0 10px;
+	color: #d8d8d8;
+	background: #2e2e2e;
+	border: 1px solid #3c3c3c;
+	border-radius: 6px;
+	box-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
+	font: 500 12.5px/1 "Segoe UI", -apple-system, BlinkMacSystemFont, "Inter", Roboto, sans-serif;
+	cursor: pointer;
+}
+
+.scale-btn:hover {
+	background: #373737;
+}
+
+.scale-btn .prefix {
+	font-family: "Segoe UI Emoji", "Apple Color Emoji", sans-serif;
+	font-size: 12px;
+}
+
+.note-foot {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 8px;
+	margin-top: 36px;
+	padding-top: 18px;
+	color: #737373;
+	border-top: 1px solid #2c2c2c;
+	font-size: 12px;
+}
+
+.sep {
+	color: #444;
+}
+
+@media (max-width: 960px) {
+	body {
+		padding: 16px;
+	}
+
+	.note {
+		width: 100%;
+		padding: 32px 28px 28px;
+	}
+}

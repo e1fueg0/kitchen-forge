@@ -5,6 +5,17 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Demo frames
+demo/.frames/
+
+# Generated mock demo assets
+assets/kitchenforge-demo.png
+assets/kitchenforge-demo.fr.png
+assets/kitchenforge-demo.gif
+assets/kitchenforge-demo.fr.gif
+assets/kitchenforge-demo.svg
+assets/kitchenforge-demo.fr.svg
+
 # IDE
 .vscode/
 .idea/

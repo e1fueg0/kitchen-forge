@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>kitchenForge preview</title>
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="demo.css">
+</head>
+<body>
+<main class="note" id="note">
+	<header class="note-head">
+		<div class="crumbs">
+			<span data-i18n="crumbRecipes">Recipes</span>
+			<span class="slash">/</span>
+			<span data-i18n="crumbNote">Weekend prep</span>
+		</div>
+		<h1 data-i18n="title">Weekend prep</h1>
+		<p class="lede" data-i18n="lede">Two recipes. Two modes. One plugin.</p>
+	</header>
+
+	<section class="demo-section" id="calc-section">
+		<div class="section-kicker">
+			<span class="dot dot-purple"></span>
+			<span data-i18n="calcKicker">CALCULATION MODE</span>
+		</div>
+		<div class="section-title-row">
+			<h2 data-i18n="sausageTitle">Sausage</h2>
+			<span class="pill">id + calc</span>
+		</div>
+		<p class="desc" data-i18n="calcDesc">Change the meat weight — salt and spices follow.</p>
+
+		<div class="kf-block">
+			<button class="copy-btn" type="button" data-i18n-title="copyTitle" title="Copy as Markdown">📋</button>
+			<h3>🥩 <span data-i18n="rawMaterials">Raw materials</span></h3>
+			<ol>
+				<li><span data-i18n="pork">Pork (semi-fatty)</span>: <b><input class="kf-input" type="number" value="800" data-var="pork" aria-label="Pork"><span class="unit"> g</span></b></li>
+				<li><span data-i18n="lard">Back fat</span>: <b><input class="kf-input" type="number" value="200" data-var="lard" aria-label="Back fat"><span class="unit"> g</span></b></li>
+			</ol>
+			<h3>🧂 <span data-i18n="spices">Spices and seasonings</span></h3>
+			<ol>
+				<li><span data-i18n="nitrite">Nitrite salt (0.6% NaNO₂)</span>: <b><span data-calc="salt">20</span><span class="unit"> g</span></b></li>
+				<li><span data-i18n="pepper">Ground black pepper</span>: <b><span data-calc="pepper">1.5</span><span class="unit"> g</span></b></li>
+				<li><span data-i18n="nutmeg">Nutmeg</span>: <b><span data-calc="nutmeg">0.5</span><span class="unit"> g</span></b></li>
+				<li><span data-i18n="sugar">Sugar</span>: <b><span data-calc="sugar">1.5</span><span class="unit"> g</span></b></li>
+				<li><span data-i18n="garlic">Dried garlic</span>: <b><span data-calc="garlic">5</span><span class="unit"> g</span></b></li>
+				<li><span data-i18n="milk">Milk powder</span>: <b><span data-calc="milk">5</span><span class="unit"> g</span></b></li>
+				<li><span data-i18n="water">Iced water</span>: <b><span data-calc="water">120</span><span class="unit"> g</span></b></li>
+			</ol>
+		</div>
+	</section>
+
+	<section class="demo-section" id="scale-section">
+		<div class="section-kicker">
+			<span class="dot dot-green"></span>
+			<span data-i18n="scaleKicker">SCALING MODE</span>
+		</div>
+		<div class="section-title-row">
+			<h2 data-i18n="doughTitle">Nut roll</h2>
+			<span class="pill">scales</span>
+		</div>
+		<p class="desc" data-i18n="scaleDesc">Pick a scale — every amount is multiplied from the original.</p>
+
+		<div class="kf-block">
+			<button class="copy-btn" type="button" data-i18n-title="copyTitle" title="Copy as Markdown">📋</button>
+			<div class="kf-scale-block">
+				<span class="scale-label">📏 </span>
+				<button class="scale-btn is-selected" type="button" data-mult="1"><span class="prefix">✅</span> <span data-i18n="full">Full</span></button>
+				<button class="scale-btn" type="button" data-mult="0.5"><span class="prefix">🎚️</span> <span data-i18n="half">Half</span></button>
+				<button class="scale-btn" type="button" data-mult="0.33"><span class="prefix">🎚️</span> <span data-i18n="third">Third</span></button>
+			</div>
+			<h3>🥣 <span data-i18n="doughSection">Dough</span></h3>
+			<ol>
+				<li><span data-i18n="flour">Flour</span>: <b><span data-scale="flour">400</span><span class="unit"> g</span></b></li>
+				<li><span data-i18n="butter">Butter</span>: <b><span data-scale="butter">140</span><span class="unit"> g</span></b></li>
+				<li><span data-i18n="eggYolks">Egg yolks</span>: <b><span data-scale="eggs">2</span><span class="unit" data-i18n="pcs"> pcs</span></b></li>
+				<li><span data-i18n="sourCream">Sour cream</span>: <b><span data-scale="cream">160</span><span class="unit"> g</span></b></li>
+				<li><span data-i18n="salt">Salt</span>: <b><span data-scale="salt">5</span><span class="unit"> g</span></b></li>
+			</ol>
+			<h3>🌰 <span data-i18n="filling">Filling</span></h3>
+			<ol>
+				<li><span data-i18n="groundNuts">Ground nuts</span>: <b><span data-scale="nuts">80</span><span class="unit"> g</span></b></li>
+				<li><span data-i18n="powderedSugar">Powdered sugar</span>: <b><span data-scale="powder">40</span><span class="unit"> g</span></b></li>
+			</ol>
+		</div>
+	</section>
+
+	<footer class="note-foot">
+		<span data-i18n="footerOne">One block = one mode.</span>
+		<span class="sep">·</span>
+		<span data-i18n="footerTwo">Available in Obsidian Community Plugins</span>
+	</footer>
+</main>
+<script src="demo.js"></script>
+</body>
+</html>
