@@ -15,6 +15,7 @@ import {
 	recalcCalcBindings,
 	Recipe,
 	Section,
+	sectionDisplayName,
 } from "./recipe";
 
 beforeAll(() => {
@@ -205,6 +206,38 @@ describe("formatSectionsToMarkdown", () => {
 
 	it("returns an empty string for no sections", () => {
 		expect(formatSectionsToMarkdown([])).toBe("");
+	});
+
+	it("keeps the choice name in composite headings", () => {
+		const sections: Section[] = [
+			{
+				name: "конфитюрный вариант",
+				choice: "Ягодная база",
+				items: [{name: "Смородина", value: 300, unit: "г"}],
+			},
+		];
+		expect(formatSectionsToMarkdown(sections)).toBe(
+			"__Ягодная база -> конфитюрный вариант__\n\n 1. Смородина: **300 г**\n",
+		);
+	});
+});
+
+describe("sectionDisplayName", () => {
+	it("prefixes a variant name with its choice", () => {
+		expect(sectionDisplayName("конфитюрный вариант", "Ягодная база"))
+			.toBe("Ягодная база -> конфитюрный вариант");
+	});
+
+	it("returns the plain name when there is no choice", () => {
+		expect(sectionDisplayName("Тесто")).toBe("Тесто");
+	});
+
+	it("trims both parts", () => {
+		expect(sectionDisplayName("  Вариант  ", "  Группа  ")).toBe("Группа -> Вариант");
+	});
+
+	it("falls back to the choice when the variant name is blank", () => {
+		expect(sectionDisplayName("   ", "Группа")).toBe("Группа");
 	});
 });
 

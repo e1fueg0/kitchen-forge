@@ -199,10 +199,11 @@ sections:
 - Les sections ne sont groupées que si elles sont **consécutives**. Une section ordinaire intercalée commence un nouveau groupe, même si le libellé se répète.
 - La **première variante** est sélectionnée à l'affichage.
 - `●` marque la variante sélectionnée, `○` les autres. Un clic affiche la variante choisie.
-- `👁 All` affiche toutes les variantes avec des sous-titres `h4` ; `👁 One` revient à une seule variante.
+- Le bouton `👁` à côté de 📋 est global à la recette. Il affiche toutes les variantes de tous les groupes ; l'œil barré revient à une variante par groupe.
+- En mode « tout afficher », les boutons de variantes et les titres de groupes disparaissent. Chaque variante reçoit un sous-titre `h4` composé en `Groupe -> Variante`, par ex. `Garniture -> 🍎 Pommes`.
 - L'**échelle sélectionnée est conservée** : cliquez sur Moitié, passez de Pommes à Cerises, et Cerises est déjà divisée par deux.
 - Les formules continuent de fonctionner entre les variantes : un `calc` dans une variante masquée est quand même évalué, donc aucun nombre périmé au changement.
-- La copie (📋) suit ce qui est affiché : uniquement la variante sélectionnée, ou toutes les variantes quand `👁 All` est actif.
+- La copie (📋) suit ce qui est affiché et conserve le nom du groupe : `__Garniture -> 🍎 Pommes__`, ou toutes les variantes quand « tout afficher » est actif.
 
 Les groupes sont indépendants : deux libellés `choice` différents créent deux rangées de boutons.
 
@@ -235,7 +236,7 @@ Une quantité non nulle ne devient jamais `0` : elle reste au minimum à un pas,
 | `decimals` | niveau racine | Non | Nombre de décimales pour les valeurs calculées et mises à l'échelle. `2` par défaut. |
 | `scales[]` | niveau racine | Non | Liste de `{name, mult}`. Incompatible avec les ingrédients `id`/`calc`. |
 | `sections[]` | niveau racine | **Oui** | Liste de `{name?, choice?, items[]}`. Une section sans nom crée un espace visuel (sauf en haut). |
-| `choice` | section | Non | Libellé de groupe pour les variantes. Les sections consécutives ayant le même `choice` forment un groupe de boutons radio ; la première est affichée au départ. |
+| `choice` | section | Non | Libellé de groupe pour les variantes. Les sections consécutives ayant le même `choice` forment un groupe de boutons radio ; la première est affichée au départ. La copie et les sous-titres du mode « tout afficher » utilisent `Groupe -> Variante`. |
 | `name` | ingrédient | **Oui** | Nom de l'ingrédient. |
 | `value` | ingrédient | Oui pour les ingrédients simples et `id` | Nombre. Ignorée si `calc` est présent. |
 | `unit` | ingrédient | Non | Remplace l'unité de la recette pour cet ingrédient. Affichage uniquement. |
@@ -247,7 +248,7 @@ Une quantité non nulle ne devient jamais `0` : elle reste au minimum à un pas,
 
 Chaque bloc affiché possède un bouton 📋 en haut. Il copie la **recette actuellement affichée** — avec les valeurs calculées ou mises à l'échelle — sous forme de liste Markdown propre. Le bouton devient ✅ pendant une seconde.
 
-Quand un groupe de choix est affiché, la copie suit la vue courante : uniquement la variante sélectionnée, ou toutes les variantes quand `👁 All` est actif.
+Quand un groupe de choix est affiché, la copie suit la vue courante et conserve le nom du groupe : `__Garniture -> 🍎 Pommes__` pour la variante sélectionnée, ou toutes les variantes quand « tout afficher » est actif.
 
 C'est pratique pour coller la recette dans une note, une liste de courses ou un message pendant la cuisson. La copie ne modifie jamais votre source YAML. Le bouton n'écrit dans le presse-papiers que lorsqu'on clique dessus ; kitchenForge ne lit jamais son contenu.
 
@@ -285,7 +286,7 @@ Téléchargez `main.js`, `manifest.json` et `styles.css` depuis la [dernière ve
 ```sh
 npm install
 npm run dev      # esbuild en mode watch
-npm test         # vitest, 117 tests
+npm test         # vitest, 122 tests
 npm run lint
 npm run build    # vérification TypeScript + bundle de production
 ```

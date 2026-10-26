@@ -529,6 +529,24 @@ async function copyRecipe(block: HTMLElement): Promise<string> {
 	return copied;
 }
 
+function getShowAllButton(block: HTMLElement): HTMLButtonElement {
+	const button = block.querySelector<HTMLButtonElement>(".kf-toolbar .kf-show-all");
+	if (!button) throw new Error("Show-all button not found");
+	return button;
+}
+
+function getChoicePicker(block: HTMLElement, groupIndex = 0): HTMLElement | null {
+	return getChoiceGroups(block)[groupIndex]?.querySelector<HTMLElement>(".kf-choice-block") ?? null;
+}
+
+function getChoiceTitle(block: HTMLElement, groupIndex = 0): HTMLElement | null {
+	return getChoiceGroups(block)[groupIndex]?.querySelector<HTMLElement>("h3") ?? null;
+}
+
+function isHidden(el: Element | null): boolean {
+	return el != null && el.classList.contains("kf-hidden");
+}
+
 const choiceRecipe = `
 unit: г
 sections:
@@ -556,17 +574,22 @@ sections:
 `;
 
 describe("workflow 3: choice groups", () => {
-	it("renders the choice name as a heading and a button per variant plus a show-all toggle", () => {
+	it("renders the group heading, one button per variant, and a global eye next to copy", () => {
 		const block = render(choiceRecipe);
 		expect(block).not.toBeNull();
 		expect(getChoiceGroups(block!).length).toBe(1);
-		expect(getChoiceGroups(block!)[0]!.querySelector("h3")!.textContent).toBe("Начинка");
+		expect(getChoiceTitle(block!)!.textContent).toBe("Начинка");
 
 		const buttons = getChoiceButtons(block!);
-		expect(buttons.length).toBe(3);
+		expect(buttons.length).toBe(2);
 		expect(buttons[0]!.textContent).toContain("🍎 Яблоко");
 		expect(buttons[1]!.textContent).toContain("🍒 Вишня");
-		expect(buttons[2]!.textContent).toContain("All");
+
+		const toolbarButtons = Array.from(block!.querySelectorAll<HTMLButtonElement>(".kf-toolbar button"));
+		expect(toolbarButtons.length).toBe(2);
+		expect(toolbarButtons[0]!.textContent).toBe("📋");
+		expect(toolbarButtons[1]!.textContent).toBe("👁");
+		expect(toolbarButtons[1]!.classList.contains("kf-show-all")).toBe(true);
 	});
 
 	it("keeps non-choice sections around the group and renders them as usual", () => {
@@ -581,7 +604,9 @@ describe("workflow 3: choice groups", () => {
 		expect(visible.length).toBe(1);
 		expect(visible[0]!.textContent).toContain("Яблоки");
 		expect(visible[0]!.textContent).not.toContain("Вишня");
-		expect(visible[0]!.querySelector("h4")!.classList.contains("kf-hidden")).toBe(true);
+		expect(isHidden(visible[0]!.querySelector("h4"))).toBe(true);
+		expect(isHidden(getChoiceTitle(block!))).toBe(false);
+		expect(isHidden(getChoicePicker(block!))).toBe(false);
 	});
 
 	it("marks the first variant as selected and exposes the state to assistive tech", () => {
@@ -607,61 +632,59 @@ describe("workflow 3: choice groups", () => {
 		expect(buttons[1]!.textContent?.startsWith("●")).toBe(true);
 	});
 
-	it("shows every variant with h4 sub-headings in show-all mode", () => {
+	it("shows every variant with composite h4 headings and removes the switchers", () => {
 		const block = render(choiceRecipe);
-		clickChoice(block!, "All");
+		getShowAllButton(block!).click();
 
 		const visible = visibleVariants(block!);
 		expect(visible.length).toBe(2);
 		const headings = visible.map(variant => variant.querySelector("h4"));
-		expect(headings.map(h => h?.textContent)).toEqual(["🍎 Яблоко", "🍒 Вишня"]);
-		expect(headings.every(h => h != null && !h.classList.contains("kf-hidden"))).toBe(true);
+		expect(headings.map(h => h?.textContent)).toEqual([
+			"Начинка -> 🍎 Яблоко",
+			"Начинка -> 🍒 Вишня",
+		]);
+		expect(headings.every(h => !isHidden(h))).toBe(true);
+		expect(isHidden(getChoiceTitle(block!))).toBe(true);
+		expect(isHidden(getChoicePicker(block!))).toBe(true);
 
-		const allButton = getChoiceButtons(block!)[2];
-		expect(allButton!.textContent).toContain("One");
+		const eye = getShowAllButton(block!);
+		expect(eye.classList.contains("kf-show-all-off")).toBe(true);
+		expect(eye.getAttribute("aria-pressed")).toBe("true");
 	});
 
-	it("collapses show-all back to the selected variant", () => {
+	it("restores the last selected variant when show-all is turned off", () => {
 		const block = render(choiceRecipe);
-		clickChoice(block!, "All");
-		clickChoice(block!, "One");
-
-		const visible = visibleVariants(block!);
-		expect(visible.length).toBe(1);
-		expect(visible[0]!.textContent).toContain("Яблоки");
-		expect(visible[0]!.querySelector("h4")!.classList.contains("kf-hidden")).toBe(true);
-	});
-
-	it("collapses show-all onto the variant clicked while all are visible", () => {
-		const block = render(choiceRecipe);
-		clickChoice(block!, "All");
 		clickChoice(block!, "🍒 Вишня");
+
+		getShowAllButton(block!).click();
+		getShowAllButton(block!).click();
 
 		const visible = visibleVariants(block!);
 		expect(visible.length).toBe(1);
 		expect(visible[0]!.textContent).toContain("Вишня");
+		expect(isHidden(visible[0]!.querySelector("h4"))).toBe(true);
+		expect(isHidden(getChoiceTitle(block!))).toBe(false);
+		expect(isHidden(getChoicePicker(block!))).toBe(false);
+		expect(getShowAllButton(block!).classList.contains("kf-show-all-off")).toBe(false);
 	});
 
-	it("copies only the visible variant in single-variant mode", async () => {
-		const block = render(choiceRecipe);
-		const copied = await copyRecipe(block!);
-
-		expect(copied).toContain("__🧂 Основа__");
-		expect(copied).toContain("__🍎 Яблоко__");
-		expect(copied).not.toContain("__🍒 Вишня__");
-		expect(copied).toContain("__🥣 Финиш__");
+	it("composes the choice and variant names with an arrow", () => {
+		const source = `
+unit: г
+sections:
+  - choice: Ягодная база
+    name: конфитюрный вариант
+    items:
+      - name: Смородина
+        value: 300
+`;
+		const block = render(source);
+		getShowAllButton(block!).click();
+		const heading = visibleVariants(block!)[0]!.querySelector("h4");
+		expect(heading!.textContent).toBe("Ягодная база -> конфитюрный вариант");
 	});
 
-	it("copies every variant in show-all mode", async () => {
-		const block = render(choiceRecipe);
-		clickChoice(block!, "All");
-		const copied = await copyRecipe(block!);
-
-		expect(copied).toContain("__🍎 Яблоко__");
-		expect(copied).toContain("__🍒 Вишня__");
-	});
-
-	it("copies each group according to its own single/show-all mode", async () => {
+	it("toggles show-all globally across every choice group", () => {
 		const source = `
 unit: г
 sections:
@@ -688,13 +711,41 @@ sections:
 `;
 		const block = render(source);
 		clickChoice(block!, "Вишня", 0);
-		clickChoice(block!, "All", 1);
 
+		getShowAllButton(block!).click();
+
+		expect(visibleVariants(block!, 0).length).toBe(2);
+		expect(visibleVariants(block!, 1).length).toBe(2);
+		expect(isHidden(getChoicePicker(block!, 0))).toBe(true);
+		expect(isHidden(getChoicePicker(block!, 1))).toBe(true);
+		expect(isHidden(getChoiceTitle(block!, 0))).toBe(true);
+		expect(isHidden(getChoiceTitle(block!, 1))).toBe(true);
+
+		getShowAllButton(block!).click();
+
+		expect(visibleVariants(block!, 0).length).toBe(1);
+		expect(visibleVariants(block!, 1).length).toBe(1);
+		expect(visibleVariants(block!, 0)[0]!.textContent).toContain("Вишня");
+		expect(visibleVariants(block!, 1)[0]!.textContent).toContain("Глазурь");
+	});
+
+	it("copies only the visible variant with its composite name", async () => {
+		const block = render(choiceRecipe);
 		const copied = await copyRecipe(block!);
-		expect(copied).not.toContain("__Яблоко__");
-		expect(copied).toContain("__Вишня__");
-		expect(copied).toContain("__Глазурь__");
-		expect(copied).toContain("__Пудра__");
+
+		expect(copied).toContain("__🧂 Основа__");
+		expect(copied).toContain("__Начинка -> 🍎 Яблоко__");
+		expect(copied).not.toContain("__Начинка -> 🍒 Вишня__");
+		expect(copied).toContain("__🥣 Финиш__");
+	});
+
+	it("copies every variant with composite names in show-all mode", async () => {
+		const block = render(choiceRecipe);
+		getShowAllButton(block!).click();
+		const copied = await copyRecipe(block!);
+
+		expect(copied).toContain("__Начинка -> 🍎 Яблоко__");
+		expect(copied).toContain("__Начинка -> 🍒 Вишня__");
 	});
 
 	it("keeps separate state for each choice group", () => {
@@ -833,6 +884,7 @@ sections:
 `;
 		const block = render(source);
 		expect(getChoiceGroups(block!).length).toBe(0);
+		expect(block!.querySelector(".kf-show-all")).toBeNull();
 		expect(block!.querySelectorAll("h3").length).toBe(2);
 	});
 });

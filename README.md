@@ -197,10 +197,11 @@ sections:
 - Sections are grouped only when they are **consecutive**. A plain section in between starts a new group, even if the label repeats.
 - The **first variant** is selected when the block renders.
 - `●` marks the selected variant, `○` the others. Clicking a button shows that variant.
-- `👁 All` shows every variant at once with `h4` sub-headings; `👁 One` returns to a single variant.
+- The `👁` button next to 📋 is a recipe-wide toggle. It shows every variant of every group; the crossed-out eye returns to one variant per group.
+- In show-all mode the variant buttons and group headings disappear. Each variant gets an `h4` heading built as `Group -> Variant`, e.g. `Filling -> 🍎 Apple`.
 - The selected **scale survives switching**: click Half, switch from Apple to Cherry, and Cherry is already halved.
 - Formulas keep working across variants: a `calc` in a hidden variant is still evaluated, so switching never shows stale numbers.
-- Copying (📋) follows what is on screen: only the selected variant, or every variant while `👁 All` is active.
+- Copying (📋) follows what is on screen and keeps the group name: `__Filling -> 🍎 Apple__` or every variant while show-all is active.
 
 Groups are independent: two different `choice` labels produce two button rows.
 
@@ -233,7 +234,7 @@ A non-zero amount never becomes `0`: it stays at least one step in the same dire
 | `decimals` | top level | No | Decimal places for computed and scaled amounts. Defaults to `2`. |
 | `scales[]` | top level | No | List of `{name, mult}`. Mutually exclusive with `id`/`calc` items. |
 | `sections[]` | top level | **Yes** | List of `{name?, choice?, items[]}`. A section without a name renders as a visual gap (except at the top). |
-| `choice` | section | No | Group label for variant sections. Consecutive sections with the same `choice` form a radio group; the first is shown initially. |
+| `choice` | section | No | Group label for variant sections. Consecutive sections with the same `choice` form a radio group; the first is shown initially. Copied and show-all headings read `Group -> Variant`. |
 | `name` | item | **Yes** | Ingredient name. |
 | `value` | item | Yes for plain and `id` items | Number. Ignored when `calc` is present. |
 | `unit` | item | No | Overrides the recipe-level unit for this item. Display-only. |
@@ -245,7 +246,7 @@ A non-zero amount never becomes `0`: it stays at least one step in the same dire
 
 Every rendered block has a 📋 button at the top. It copies the **currently displayed recipe** — with calculated or scaled values filled in — as a clean Markdown list. The button turns into ✅ for a second.
 
-When a choice group is visible, the copy follows the current view: the selected variant only, or all variants when `👁 All` is active.
+When a choice group is visible, the copy follows the current view and keeps the group name: `__Filling -> 🍎 Apple__` for the selected variant, or every variant when show-all is active.
 
 This is handy for pasting into a note, a shopping list, or a message while cooking. Copying never rewrites your YAML source. The button only writes to the clipboard when clicked; kitchenForge never reads clipboard contents.
 
@@ -283,7 +284,7 @@ Download `main.js`, `manifest.json` and `styles.css` from the [latest release](h
 ```sh
 npm install
 npm run dev      # esbuild in watch mode
-npm test         # vitest, 117 tests
+npm test         # vitest, 122 tests
 npm run lint
 npm run build    # type-check + production bundle
 ```

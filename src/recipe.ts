@@ -32,6 +32,16 @@ function choiceTitle(section: Section): string | null {
 	return title.length > 0 ? title : null;
 }
 
+// Sections inside a choice group are addressed as "Group -> Variant". The
+// composite name is used in copied Markdown and in show-all headings, where
+// the group label is no longer visible next to the section.
+export function sectionDisplayName(name: string, choice?: string): string {
+	const group = typeof choice === "string" ? choice.trim() : "";
+	if (group.length === 0) return name;
+	const variant = name?.trim() ?? "";
+	return variant.length > 0 ? `${group} -> ${variant}` : group;
+}
+
 export function groupSections(sections: Section[]): SectionGroup[] {
 	const groups: SectionGroup[] = [];
 	let index = 0;
@@ -92,8 +102,9 @@ export type MultBinding = {
 export function formatSectionsToMarkdown(sections: Section[]): string {
 	const lines: string[] = [];
 	for (const section of sections) {
-		if (section.name) {
-			lines.push(`__${section.name}__`);
+		const title = sectionDisplayName(section.name, section.choice);
+		if (title) {
+			lines.push(`__${title}__`);
 			lines.push("");
 		} else if (lines.length > 0) {
 			lines.push("&nbsp;");   // пустой абзац: отступ + разрыв нумерации
