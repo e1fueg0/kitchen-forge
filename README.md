@@ -204,7 +204,7 @@ A non-zero amount never becomes `0`: it stays at least one step in the same dire
 
 Every rendered block has a 📋 button at the top. It copies the **currently displayed recipe** — with calculated or scaled values filled in — as a clean Markdown list. The button turns into ✅ for a second.
 
-This is handy for pasting into a note, a shopping list, or a message while cooking. Copying never rewrites your YAML source.
+This is handy for pasting into a note, a shopping list, or a message while cooking. Copying never rewrites your YAML source. The button only writes to the clipboard when clicked; kitchenForge never reads clipboard contents.
 
 ## Troubleshooting
 

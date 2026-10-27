@@ -206,7 +206,7 @@ Une quantité non nulle ne devient jamais `0` : elle reste au minimum à un pas,
 
 Chaque bloc affiché possède un bouton 📋 en haut. Il copie la **recette actuellement affichée** — avec les valeurs calculées ou mises à l'échelle — sous forme de liste Markdown propre. Le bouton devient ✅ pendant une seconde.
 
-C'est pratique pour coller la recette dans une note, une liste de courses ou un message pendant la cuisson. La copie ne modifie jamais votre source YAML.
+C'est pratique pour coller la recette dans une note, une liste de courses ou un message pendant la cuisson. La copie ne modifie jamais votre source YAML. Le bouton n'écrit dans le presse-papiers que lorsqu'on clique dessus ; kitchenForge ne lit jamais son contenu.
 
 ## Dépannage
 

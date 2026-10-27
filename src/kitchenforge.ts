@@ -175,7 +175,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 				});
 			}
 
-			bEl.createEl('span', {text: ` ${item.unit}`});
+			bEl.createSpan({text: ` ${item.unit}`});
 		}
 	}
 
