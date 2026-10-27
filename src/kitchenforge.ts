@@ -1,6 +1,7 @@
 import {ButtonComponent, MarkdownPostProcessorContext, TextComponent} from 'obsidian';
 import YAML from "yaml";
 import {Vars} from "./calc";
+import {ChoiceGroupView} from "./choice-group";
 import {
 	applyScale,
 	CalcBinding,
@@ -13,14 +14,11 @@ import {
 	Recipe,
 	Scale,
 	Section,
-	sectionDisplayName,
 } from "./recipe";
 
 const SCALE_PREFIX = "🎚 ️";
 const SELECTED_PREFIX = "✅ ";
 const ORIGINAL_SCALE_NAME = "💯 1:1";
-const CHOICE_SELECTED_PREFIX = "● ";
-const CHOICE_PREFIX = "○ ";
 
 const HIDDEN_CLASS = "kf-hidden";
 
@@ -97,10 +95,19 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 	const wrapperBySection = new Map<Section, HTMLElement>();
 
 	const toolbarEl = blockEl.createDiv({cls: "kf-toolbar"});
+	const statusEl = toolbarEl.createSpan({cls: "kf-status"});
+	statusEl.setAttribute("role", "status");
+	statusEl.setAttribute("aria-live", "polite");
+	statusEl.setAttribute("aria-atomic", "true");
+	const announce = (message: string) => {
+		statusEl.textContent = message;
+	};
 
 	const copyCmp = new ButtonComponent(toolbarEl);
 	const copyLabel = "📋";
 	copyCmp.setButtonText(copyLabel);
+	copyCmp.buttonEl.setAttribute("aria-label", "Copy recipe");
+	copyCmp.buttonEl.setAttribute("title", "Copy recipe");
 	copyCmp.onClick(async () => {
 		try {
 			const visibleSections = recipe.sections.filter(section => {
@@ -109,6 +116,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 			});
 			await navigator.clipboard.writeText(formatSectionsToMarkdown(visibleSections));
 
+			announce("Recipe copied");
 			copyCmp.setButtonText("✅");
 			copyCmp.setDisabled(true);
 
@@ -117,12 +125,13 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 				copyCmp.setDisabled(false);
 			}, 1000);
 		} catch (e) {
+			announce("Copy failed");
 			reportError(el, "Copy failed: " + (e instanceof Error ? e.message : String(e)));
 		}
 	});
 
 	// One global toggle controls every choice group in the recipe.
-	const choiceSyncers: ((showAll: boolean) => void)[] = [];
+	const choiceViews: ChoiceGroupView[] = [];
 	let showAll = false;
 	let showAllCmp: ButtonComponent | null = null;
 
@@ -142,8 +151,9 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		showAllCmp.buttonEl.classList.add("kf-show-all");
 		showAllCmp.onClick(() => {
 			showAll = !showAll;
-			for (const sync of choiceSyncers) sync(showAll);
+			for (const view of choiceViews) view.sync(showAll);
 			updateShowAllButton();
+			announce(showAll ? "Showing all variants" : "Showing one variant per group");
 		});
 		updateShowAllButton();
 	}
@@ -243,70 +253,30 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		renderItems(section, wrapper);
 	};
 
-	const renderChoiceGroup = (title: string, variants: Section[]) => {
-		const groupEl = blockEl.createDiv({cls: "kf-choice-group"});
-		const titleEl = title
-			? groupEl.createEl('h3', {text: title, cls: "kf-choice-title"})
-			: null;
-
-		const pickerEl = groupEl.createDiv({cls: "kf-choice-block"});
-		pickerEl.setAttribute("role", "group");
-		if (title) pickerEl.setAttribute("aria-label", title);
-		const buttons: {cmp: ButtonComponent; label: string}[] = [];
-		const rendered: {wrapper: HTMLElement; heading: HTMLElement}[] = [];
-		let activeIndex = 0;
-
-		const sync = (showAll: boolean) => {
-			if (titleEl) setVisible(titleEl, !showAll);
-			setVisible(pickerEl, !showAll);
-
-			for (let i = 0; i < buttons.length; i++) {
-				const entry = buttons[i]!;
-				const isActive = i === activeIndex;
-				entry.cmp.setButtonText((isActive ? CHOICE_SELECTED_PREFIX : CHOICE_PREFIX) + entry.label);
-				entry.cmp.buttonEl.classList.toggle("is-active", isActive);
-				entry.cmp.buttonEl.setAttribute("aria-pressed", String(isActive));
-				entry.cmp.buttonEl.setAttribute("aria-label", `Show variant ${entry.label}`);
-			}
-
-			for (let i = 0; i < rendered.length; i++) {
-				const entry = rendered[i]!;
-				setVisible(entry.wrapper, showAll || i === activeIndex);
-				// Show-all drops the group title and switchers, so the composite
-				// "Group → Variant" heading carries the context instead.
-				setVisible(entry.heading, showAll);
-			}
-		};
-
-		variants.forEach((section, index) => {
-			const label = (section.name || `Variant ${index + 1}`).trim();
-			const wrapper = groupEl.createDiv({cls: "kf-choice-variant"});
-			const heading = wrapper.createEl('h4', {
-				text: sectionDisplayName(label, title),
-				cls: "kf-choice-variant-title",
-			});
-			renderItems(section, wrapper);
+	const choiceContext = {
+		renderItems,
+		registerSection: (section: Section, wrapper: HTMLElement) => {
 			wrapperBySection.set(section, wrapper);
-			rendered.push({wrapper, heading});
-
-			const cmp = new ButtonComponent(pickerEl);
-			cmp.buttonEl.classList.add("kf-choice-btn");
-			cmp.onClick(() => {
-				activeIndex = index;
-				sync(showAll);
-			});
-			buttons.push({cmp, label});
-		});
-
-		choiceSyncers.push(sync);
-		sync(showAll);
+		},
+		setVisible,
+		announce,
 	};
 
 	for (const group of groups) {
-		if (group.kind === "section")
+		if (group.kind === "section") {
 			renderSection(group.section);
-		else
-			renderChoiceGroup(group.title, group.variants);
+		} else {
+			const view = new ChoiceGroupView(blockEl, group.title, group.variants, choiceContext);
+			view.sync(showAll);
+			choiceViews.push(view);
+		}
+	}
+
+	if (showAllCmp) {
+		showAllCmp.buttonEl.setAttribute(
+			"aria-controls",
+			choiceViews.map(view => view.element.id).join(" "),
+		);
 	}
 
 	// Apply initial scale (first in list) or mult=1 if no scales.

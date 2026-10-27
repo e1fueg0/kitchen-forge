@@ -511,12 +511,8 @@ function variantValue(wrapper: HTMLElement): string {
 
 async function copyRecipe(block: HTMLElement): Promise<string> {
 	let copied = "";
-	const original = navigator.clipboard;
-	Object.defineProperty(navigator, "clipboard", {
-		value: {writeText: vi.fn(async (text: string) => {
-			copied = text;
-		})},
-		configurable: true,
+	const writeText = vi.spyOn(navigator.clipboard, "writeText").mockImplementation(async (text: string) => {
+		copied = text;
 	});
 	try {
 		const button = Array.from(block.querySelectorAll("button")).find(b => b.textContent === "📋");
@@ -524,7 +520,7 @@ async function copyRecipe(block: HTMLElement): Promise<string> {
 		button.click();
 		await new Promise(resolve => setTimeout(resolve, 0));
 	} finally {
-		Object.defineProperty(navigator, "clipboard", {value: original, configurable: true});
+		writeText.mockRestore();
 	}
 	return copied;
 }
@@ -533,6 +529,10 @@ function getShowAllButton(block: HTMLElement): HTMLButtonElement {
 	const button = block.querySelector<HTMLButtonElement>(".kf-toolbar .kf-show-all");
 	if (!button) throw new Error("Show-all button not found");
 	return button;
+}
+
+function getStatus(block: HTMLElement): HTMLElement | null {
+	return block.querySelector<HTMLElement>(".kf-toolbar .kf-status");
 }
 
 function getChoicePicker(block: HTMLElement, groupIndex = 0): HTMLElement | null {
@@ -588,10 +588,26 @@ describe("workflow 3: choice groups", () => {
 		const toolbarButtons = Array.from(block!.querySelectorAll<HTMLButtonElement>(".kf-toolbar button"));
 		expect(toolbarButtons.length).toBe(2);
 		expect(toolbarButtons[0]!.textContent).toBe("📋");
+		expect(toolbarButtons[0]!.getAttribute("aria-label")).toBe("Copy recipe");
 		expect(toolbarButtons[1]!.textContent).toBe("");
 		expect(toolbarButtons[1]!.getAttribute("data-icon")).toBe("eye");
 		expect(toolbarButtons[1]!.getAttribute("aria-label")).toBe("Show all variants");
 		expect(toolbarButtons[1]!.classList.contains("kf-show-all")).toBe(true);
+
+		const group = getChoiceGroups(block!)[0]!;
+		expect(group.id).not.toBe("");
+		expect(toolbarButtons[1]!.getAttribute("aria-controls")).toBe(group.id);
+		const variants = Array.from(group.querySelectorAll<HTMLElement>(".kf-choice-variant"));
+		expect(variants.every(variant => variant.id !== "")).toBe(true);
+		expect(buttons[0]!.getAttribute("aria-controls")).toBe(variants[0]!.id);
+		expect(buttons[1]!.getAttribute("aria-controls")).toBe(variants[1]!.id);
+
+		const status = getStatus(block!);
+		expect(status).not.toBeNull();
+		expect(status!.getAttribute("role")).toBe("status");
+		expect(status!.getAttribute("aria-live")).toBe("polite");
+		expect(status!.getAttribute("aria-atomic")).toBe("true");
+		expect(status!.textContent).toBe("");
 	});
 
 	it("keeps non-choice sections around the group and renders them as usual", () => {
@@ -624,6 +640,7 @@ describe("workflow 3: choice groups", () => {
 		const block = render(choiceRecipe);
 		clickChoice(block!, "🍒 Вишня");
 
+		expect(getStatus(block!)!.textContent).toBe("Showing variant 🍒 Вишня");
 		const visible = visibleVariants(block!);
 		expect(visible.length).toBe(1);
 		expect(visible[0]!.textContent).toContain("Вишня");
@@ -638,6 +655,7 @@ describe("workflow 3: choice groups", () => {
 		const block = render(choiceRecipe);
 		getShowAllButton(block!).click();
 
+		expect(getStatus(block!)!.textContent).toBe("Showing all variants");
 		const visible = visibleVariants(block!);
 		expect(visible.length).toBe(2);
 		const headings = visible.map(variant => variant.querySelector("h4"));
@@ -662,6 +680,7 @@ describe("workflow 3: choice groups", () => {
 		getShowAllButton(block!).click();
 		getShowAllButton(block!).click();
 
+		expect(getStatus(block!)!.textContent).toBe("Showing one variant per group");
 		const visible = visibleVariants(block!);
 		expect(visible.length).toBe(1);
 		expect(visible[0]!.textContent).toContain("Вишня");
@@ -736,6 +755,7 @@ sections:
 		const block = render(choiceRecipe);
 		const copied = await copyRecipe(block!);
 
+		expect(getStatus(block!)!.textContent).toBe("Recipe copied");
 		expect(copied).toContain("__🧂 Основа__");
 		expect(copied).toContain("__Начинка → 🍎 Яблоко__");
 		expect(copied).not.toContain("__Начинка → 🍒 Вишня__");
@@ -782,6 +802,9 @@ sections:
 `;
 		const block = render(source);
 		expect(getChoiceGroups(block!).length).toBe(2);
+		const groupIds = getChoiceGroups(block!).map(group => group.id);
+		expect(new Set(groupIds).size).toBe(groupIds.length);
+		expect(getShowAllButton(block!).getAttribute("aria-controls")).toBe(groupIds.join(" "));
 
 		clickChoice(block!, "Вишня", 0);
 		expect(visibleVariants(block!, 0)[0]!.textContent).toContain("Вишня");
@@ -927,11 +950,8 @@ sections:
 
 	it("catches clipboard failures from the copy button and reports them", async () => {
 		const block = render(calcRecipe);
-		const original = navigator.clipboard;
-		Object.defineProperty(navigator, "clipboard", {
-			value: {writeText: vi.fn().mockRejectedValue(new Error("clipboard blocked"))},
-			configurable: true,
-		});
+		const writeText = vi.spyOn(navigator.clipboard, "writeText")
+			.mockRejectedValue(new Error("clipboard blocked"));
 		try {
 			const copyBtn = block!.querySelector("button");
 			expect(copyBtn).not.toBeNull();
@@ -941,8 +961,9 @@ sections:
 			const err = errorEl();
 			expect(err).not.toBeNull();
 			expect(err!.textContent).toContain("Copy failed: clipboard blocked");
+			expect(getStatus(block!)!.textContent).toBe("Copy failed");
 		} finally {
-			Object.defineProperty(navigator, "clipboard", {value: original, configurable: true});
+			writeText.mockRestore();
 		}
 	});
 
