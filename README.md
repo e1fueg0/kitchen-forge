@@ -29,7 +29,7 @@ kitchenForge puts both workflows into Obsidian as a fenced `kitchenforge` block.
 
 ## Calculation mode: ratios that follow the meat
 
-Mark the ingredients you want to edit with an `id`. Any ingredient with a `calc` expression can reference those ids. The expression is evaluated when the block renders and again on every input change.
+Mark the ingredients you want to edit with an `id`. Any ingredient with a `calc` expression can reference those ids. The expression is evaluated when the block renders and again on every input change. IDs must be unique across the whole recipe — they are shared variable names.
 
 ````markdown
 ```kitchenforge
@@ -196,7 +196,7 @@ A non-zero amount never becomes `0`: it stays at least one step in the same dire
 | `name` | item | **Yes** | Ingredient name. |
 | `value` | item | Yes for plain and `id` items | Number. Ignored when `calc` is present. |
 | `unit` | item | No | Overrides the recipe-level unit for this item. Display-only. |
-| `id` | item | No | Exposes the item as an editable input. Other items can reference the id in `calc`. Needs a numeric `value`. |
+| `id` | item | No | Exposes the item as an editable input. Other items can reference the id in `calc`. Needs a numeric `value`. Must be unique across the whole recipe. |
 | `calc` | item | No | Expression. Supports `+ - * / @` and parentheses. Use instead of `value`. |
 | `round` | item | No | Snap computed/scaled amount to the nearest multiple of this step (e.g. `25`, `1`). Overrides `decimals`; a non-zero amount never becomes `0`. |
 
@@ -213,6 +213,7 @@ This is handy for pasting into a note, a shopping list, or a message while cooki
 | `Recipe must have a 'sections' array` | Missing `sections` | Add `sections:` with at least one section. |
 | `Section '…' must have an 'items' array` | A section has no `items` | Add an `items:` list to that section. |
 | `Unknown variable: …` | `calc` references an id that does not exist or has no `value` | Add the id with a numeric value, or fix the spelling. |
+| `Duplicate id '…'` | The same id is used by more than one item | Give each item a unique id. |
 | `Cannot have scales with ids/formulas specified` | Mixed modes | Remove `scales`, or remove every `id`/`calc`. |
 | `Unsupported operator` | Used `%`, `^`, etc. | Use `+ - * / @`. |
 | `Error parsing recipe:` | Invalid YAML | Check indentation, colons and quotes. |

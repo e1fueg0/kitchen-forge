@@ -5,6 +5,7 @@ import {Vars} from "./calc";
 import {
 	applyScale,
 	CalcBinding,
+	findDuplicateId,
 	formatRecipeToMarkdown,
 	Ingredient,
 	MultBinding,
@@ -265,5 +266,80 @@ describe("prefillVars", () => {
 	it("returns false for an empty recipe", () => {
 		const vars: Vars = {};
 		expect(prefillVars({scales: [], sections: []}, vars)).toBe(false);
+	});
+});
+
+describe("findDuplicateId", () => {
+	it("returns null when all ids are unique", () => {
+		const recipe: Recipe = {
+			scales: [],
+			sections: [
+				{name: "Sauce", items: [{name: "Salt", id: "salt", value: 5}]},
+				{name: "Dough", items: [{name: "Flour", id: "flour", value: 500}]},
+			],
+		};
+		expect(findDuplicateId(recipe)).toBeNull();
+	});
+
+	it("returns the first duplicate and both locations", () => {
+		const recipe: Recipe = {
+			scales: [],
+			sections: [
+				{name: "Sauce", items: [{name: "Salt", id: "salt", value: 5}]},
+				{name: "Dough", items: [{name: "Salt", id: "salt", value: 2}]},
+			],
+		};
+		const duplicate = findDuplicateId(recipe);
+		expect(duplicate).not.toBeNull();
+		expect(duplicate!.id).toBe("salt");
+		expect(duplicate!.first.section.name).toBe("Sauce");
+		expect(duplicate!.first.item.name).toBe("Salt");
+		expect(duplicate!.second.section.name).toBe("Dough");
+		expect(duplicate!.second.item.name).toBe("Salt");
+	});
+
+	it("detects duplicates within the same section", () => {
+		const recipe: Recipe = {
+			scales: [],
+			sections: [{
+				name: "Sauce",
+				items: [
+					{name: "Salt", id: "salt", value: 5},
+					{name: "More salt", id: "salt", value: 1},
+				],
+			}],
+		};
+		const duplicate = findDuplicateId(recipe);
+		expect(duplicate?.first.item.name).toBe("Salt");
+		expect(duplicate?.second.item.name).toBe("More salt");
+	});
+
+	it("ignores missing and empty ids", () => {
+		const recipe: Recipe = {
+			scales: [],
+			sections: [{
+				name: "Sauce",
+				items: [
+					{name: "Salt", value: 5},
+					{name: "Pepper", id: "", value: 1},
+					{name: "Sugar", id: "sugar", value: 2},
+				],
+			}],
+		};
+		expect(findDuplicateId(recipe)).toBeNull();
+	});
+
+	it("counts ids on calc items too", () => {
+		const recipe: Recipe = {
+			scales: [],
+			sections: [{
+				name: "Sauce",
+				items: [
+					{name: "Salt", id: "salt", value: 5},
+					{name: "Salt again", id: "salt", calc: "1 + 1"},
+				],
+			}],
+		};
+		expect(findDuplicateId(recipe)?.second.item.name).toBe("Salt again");
 	});
 });

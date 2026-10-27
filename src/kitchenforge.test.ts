@@ -644,4 +644,46 @@ sections:
 		expect(err).not.toBeNull();
 		expect(err!.textContent).toMatch(/Unsupported operator: %/);
 	});
+
+	it("reports duplicate ids and does not render the recipe", () => {
+		const source = `
+unit: г
+sections:
+  - name: Sauce
+    items:
+      - name: Salt
+        id: salt
+        value: 5
+  - name: Dough
+    items:
+      - name: Salt
+        id: salt
+        value: 2
+`;
+		expect(render(source)).toBeNull();
+		const err = errorEl();
+		expect(err).not.toBeNull();
+		expect(err!.textContent).toContain("Duplicate id 'salt'");
+		expect(err!.textContent).toContain("'Salt' in 'Sauce'");
+		expect(err!.textContent).toContain("'Salt' in 'Dough'");
+	});
+
+	it("allows repeated section and item names when the ids are unique", () => {
+		const source = `
+unit: г
+sections:
+  - name: Sauce
+    items:
+      - name: Salt
+        id: salt
+        value: 5
+  - name: Sauce
+    items:
+      - name: Salt
+        id: salt2
+        value: 2
+`;
+		expect(render(source)).not.toBeNull();
+		expect(errorEl()).toBeNull();
+	});
 });

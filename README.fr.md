@@ -29,7 +29,7 @@ kitchenForge réunit les deux dans Obsidian sous forme de bloc `kitchenforge`. L
 
 ## Mode calcul : des ratios qui suivent la viande
 
-Marquez les ingrédients que vous voulez modifier avec un `id`. Tout ingrédient qui possède une expression `calc` peut référencer ces ids. L'expression est évaluée à l'affichage du bloc, puis à chaque modification d'un champ.
+Marquez les ingrédients que vous voulez modifier avec un `id`. Tout ingrédient qui possède une expression `calc` peut référencer ces ids. L'expression est évaluée à l'affichage du bloc, puis à chaque modification d'un champ. Les ids doivent être uniques dans toute la recette : ce sont des noms de variables partagés.
 
 ````markdown
 ```kitchenforge
@@ -198,7 +198,7 @@ Une quantité non nulle ne devient jamais `0` : elle reste au minimum à un pas,
 | `name` | ingrédient | **Oui** | Nom de l'ingrédient. |
 | `value` | ingrédient | Oui pour les ingrédients simples et `id` | Nombre. Ignorée si `calc` est présent. |
 | `unit` | ingrédient | Non | Remplace l'unité de la recette pour cet ingrédient. Affichage uniquement. |
-| `id` | ingrédient | Non | Expose l'ingrédient comme champ modifiable. Les autres ingrédients peuvent le référencer dans `calc`. Nécessite une `value` numérique. |
+| `id` | ingrédient | Non | Expose l'ingrédient comme champ modifiable. Les autres ingrédients peuvent le référencer dans `calc`. Nécessite une `value` numérique. Doit être unique dans toute la recette. |
 | `calc` | ingrédient | Non | Expression. Opérateurs `+ - * / @` et parenthèses. À utiliser à la place de `value`. |
 | `round` | ingrédient | Non | Arrondit la valeur calculée/mise à l'échelle au multiple de ce pas (par ex. `25`, `1`). Remplace `decimals` ; une quantité non nulle ne devient jamais `0`. |
 
@@ -215,6 +215,7 @@ C'est pratique pour coller la recette dans une note, une liste de courses ou un 
 | `Recipe must have a 'sections' array` | Le bloc n'a pas de liste `sections` | Ajoutez `sections:` avec au moins une section. |
 | `Section '…' must have an 'items' array` | Une section n'a pas de liste `items` | Ajoutez une liste `items:` à cette section. |
 | `Unknown variable: …` | `calc` référence un id inexistant ou sans `value` | Ajoutez l'id avec une valeur numérique, ou corrigez l'orthographe. |
+| `Duplicate id '…'` | Le même id est utilisé par plusieurs ingrédients | Donnez un id unique à chaque ingrédient. |
 | `Cannot have scales with ids/formulas specified` | Modes mélangés | Supprimez `scales`, ou supprimez tous les `id`/`calc`. |
 | `Unsupported operator` | Opérateur `%`, `^`, etc. | Utilisez `+ - * / @`. |
 | `Error parsing recipe:` | YAML invalide | Vérifiez l'indentation, les deux-points et les guillemets. |

@@ -3,6 +3,7 @@ import {evaluate, round, roundToStep, Vars} from "./calc";
 
 export type Ingredient = {
 	name: string;
+	/** Formula variable name. Must be unique across the whole recipe. */
 	id?: string;
 	value?: number;
 	calc?: string;
@@ -83,6 +84,34 @@ export function recalcCalcBindings(bindings: CalcBinding[], vars: Vars, decimals
 		binding.el.setText(`${calculated}`);
 		binding.item.value = calculated;
 	}
+}
+
+export type IdLocation = {
+	section: Section;
+	item: Ingredient;
+};
+
+export type DuplicateId = {
+	id: string;
+	first: IdLocation;
+	second: IdLocation;
+};
+
+// IDs become keys in the shared `vars` object, so duplicates would silently
+// make two inputs write to the same formula variable.
+export function findDuplicateId(recipe: Recipe): DuplicateId | null {
+	const seen = new Map<string, IdLocation>();
+	for (const section of recipe.sections) {
+		for (const item of section.items) {
+			if (!item.id) continue;
+			const id = String(item.id);
+			const first = seen.get(id);
+			if (first)
+				return {id, first, second: {section, item}};
+			seen.set(id, {section, item});
+		}
+	}
+	return null;
 }
 
 export function prefillVars(recipe: Recipe, vars: Vars): boolean {

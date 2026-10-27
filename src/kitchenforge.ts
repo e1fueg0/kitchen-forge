@@ -4,6 +4,7 @@ import {Vars} from "./calc";
 import {
 	applyScale,
 	CalcBinding,
+	findDuplicateId,
 	formatRecipeToMarkdown,
 	MultBinding,
 	prefillVars,
@@ -42,6 +43,20 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 			reportError(el, `Section '${section.name}' must have an 'items' array`);
 			return;
 		}
+	}
+
+	const duplicateId = findDuplicateId(recipe);
+	if (duplicateId) {
+		const describe = (sectionName: string, itemName: string) =>
+			sectionName
+				? `'${itemName}' in '${sectionName}'`
+				: `'${itemName}' in an unnamed section`;
+		reportError(
+			el,
+			`Duplicate id '${duplicateId.id}': ${describe(duplicateId.first.section.name, duplicateId.first.item.name)}` +
+			` and ${describe(duplicateId.second.section.name, duplicateId.second.item.name)}`,
+		);
+		return;
 	}
 
 	if (recipe.decimals == null)
