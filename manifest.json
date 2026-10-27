@@ -1,7 +1,7 @@
 {
 	"id": "kitchen-forge",
 	"name": "kitchenForge",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"minAppVersion": "1.2.3",
 	"description": "Renders kitchenForge recipe calculator blocks.",
 	"author": "elfuego.biz",
