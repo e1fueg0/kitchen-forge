@@ -91,8 +91,11 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 	const hasChoiceGroups = groups.some(group => group.kind === "choice");
 
 	// Section wrappers let the copy button mirror exactly what is on screen:
-	// hidden variants are skipped, visible ones are copied as-is.
+	// hidden variants are skipped, visible ones are copied as-is. The rendered
+	// order can differ from the source when one choice group appears in
+	// several places, so keep a separate list in render order.
 	const wrapperBySection = new Map<Section, HTMLElement>();
+	const renderedSections: Section[] = [];
 
 	const toolbarEl = blockEl.createDiv({cls: "kf-toolbar"});
 	const statusEl = toolbarEl.createSpan({cls: "kf-status"});
@@ -110,7 +113,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 	copyCmp.buttonEl.setAttribute("title", "Copy recipe");
 	copyCmp.onClick(async () => {
 		try {
-			const visibleSections = recipe.sections.filter(section => {
+			const visibleSections = renderedSections.filter(section => {
 				const wrapper = wrapperBySection.get(section);
 				return wrapper == null || isVisible(wrapper);
 			});
@@ -244,6 +247,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		const hasContentBefore = blockEl.childElementCount > 0;
 		const wrapper = blockEl.createDiv({cls: "kf-section"});
 		wrapperBySection.set(section, wrapper);
+		renderedSections.push(section);
 
 		if (section.name)
 			wrapper.createEl('h3', {text: section.name});
@@ -257,6 +261,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		renderItems,
 		registerSection: (section: Section, wrapper: HTMLElement) => {
 			wrapperBySection.set(section, wrapper);
+			renderedSections.push(section);
 		},
 		setVisible,
 		announce,

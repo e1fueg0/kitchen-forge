@@ -253,7 +253,7 @@ describe("groupSections", () => {
 		]);
 	});
 
-	it("groups consecutive sections that share a choice name", () => {
+	it("groups sections that share a choice name", () => {
 		const sections = [plain("Base"), variant("Apple", "Filling"), variant("Cherry", "Filling"), plain("Finish")];
 		expect(groupSections(sections)).toEqual([
 			{kind: "section", section: sections[0]},
@@ -270,12 +270,24 @@ describe("groupSections", () => {
 		]);
 	});
 
-	it("keeps repeated choice names separate when a plain section interrupts them", () => {
+	it("collects repeated choice names into one group at the first occurrence", () => {
 		const sections = [variant("Apple", "Filling"), plain("Pause"), variant("Cherry", "Filling")];
 		expect(groupSections(sections)).toEqual([
-			{kind: "choice", title: "Filling", variants: [sections[0]]},
+			{kind: "choice", title: "Filling", variants: [sections[0], sections[2]]},
 			{kind: "section", section: sections[1]},
-			{kind: "choice", title: "Filling", variants: [sections[2]]},
+		]);
+	});
+
+	it("collects interleaved choice groups in first-seen order", () => {
+		const sections = [
+			variant("Apple", "Filling"),
+			variant("Crumble", "Topping"),
+			variant("Cherry", "Filling"),
+			variant("Pudding", "Topping"),
+		];
+		expect(groupSections(sections)).toEqual([
+			{kind: "choice", title: "Filling", variants: [sections[0], sections[2]]},
+			{kind: "choice", title: "Topping", variants: [sections[1], sections[3]]},
 		]);
 	});
 

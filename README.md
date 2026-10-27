@@ -168,7 +168,7 @@ The `📏` label prefixes the button row. The selected button starts with `✅`;
 
 ## Choice groups: one component, several variants
 
-Some parts of a recipe exist in interchangeable versions: apple or cherry filling, lean or fatty mince, glaze or crumble. Mark consecutive sections with the same `choice` value to turn them into a radio group.
+Some parts of a recipe exist in interchangeable versions: apple or cherry filling, lean or fatty mince, glaze or crumble. Give interchangeable sections the same `choice` value to turn them into a radio group.
 
 ````markdown
 ```kitchenforge
@@ -194,7 +194,7 @@ sections:
 ````
 
 - `choice` is the group label; use the same text on every variant.
-- Sections are grouped only when they are **consecutive**. A plain section in between starts a new group, even if the label repeats.
+- All sections with the same `choice` value form one group, even if other sections are between them. The group is rendered where its first variant appears; variants keep their source order.
 - The **first variant** is selected when the block renders.
 - `●` marks the selected variant, `○` the others. Clicking a button shows that variant.
 - The eye button next to 📋 is a recipe-wide toggle: the plain eye shows every variant of every group, the crossed-out eye returns to one variant per group.
@@ -203,7 +203,7 @@ sections:
 - Formulas keep working across variants: a `calc` in a hidden variant is still evaluated, so switching never shows stale numbers.
 - Copying (📋) follows what is on screen and keeps the group name: `__Filling → 🍎 Apple__` or every variant while show-all is active.
 
-Groups are independent: two different `choice` labels produce two button rows.
+Every distinct `choice` label produces one button row, no matter where its sections appear in the source.
 
 ## Rounding
 
@@ -234,7 +234,7 @@ A non-zero amount never becomes `0`: it stays at least one step in the same dire
 | `decimals` | top level | No | Decimal places for computed and scaled amounts. Defaults to `2`. |
 | `scales[]` | top level | No | List of `{name, mult}`. Mutually exclusive with `id`/`calc` items. |
 | `sections[]` | top level | **Yes** | List of `{name?, choice?, items[]}`. A section without a name renders as a visual gap (except at the top). |
-| `choice` | section | No | Group label for variant sections. Consecutive sections with the same `choice` form a radio group; the first is shown initially. Copied and show-all headings read `Group → Variant`. |
+| `choice` | section | No | Group label for variant sections. All sections with the same `choice` form one radio group, placed at the first variant's position; the first variant is shown initially. Copied and show-all headings read `Group → Variant`. |
 | `name` | item | **Yes** | Ingredient name. |
 | `value` | item | Yes for plain and `id` items | Number. Ignored when `calc` is present. |
 | `unit` | item | No | Overrides the recipe-level unit for this item. Display-only. |

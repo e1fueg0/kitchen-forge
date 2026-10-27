@@ -15,17 +15,17 @@ export type Section = {
 	/** Visible section heading. For a choice variant this is the variant label. */
 	name: string;
 	/**
-	 * Optional choice-group label. Consecutive sections with the same value are
-	 * rendered as variants of one group; an interrupted run starts a new group.
+	 * Optional choice-group label. Sections with the same value are collected
+	 * into one group, rendered where the first such section appears.
 	 */
 	choice?: string;
 	items: Ingredient[];
 };
 
 // A recipe is rendered as an ordered list of blocks: standalone sections and
-// groups of consecutive sections that share a `choice` name. The same `choice`
-// appears twice in the source, separated by a plain section, produces two
-// independent groups.
+// choice groups. All sections with the same `choice` value belong to one group,
+// even when other sections separate them; the group is rendered at the
+// position of its first variant.
 export type SectionGroup =
 	| { kind: "section"; section: Section }
 	| { kind: "choice"; title: string; variants: Section[] };
@@ -49,27 +49,23 @@ export function sectionDisplayName(name: string, choice?: string): string {
 
 export function groupSections(sections: Section[]): SectionGroup[] {
 	const groups: SectionGroup[] = [];
-	let index = 0;
+	const groupsByTitle = new Map<string, { kind: "choice"; title: string; variants: Section[] }>();
 
-	while (index < sections.length) {
-		const section = sections[index]!;
+	for (const section of sections) {
 		const title = choiceTitle(section);
 
 		if (title == null) {
 			groups.push({kind: "section", section});
-			index += 1;
 			continue;
 		}
 
-		const variants = [section];
-		let next = index + 1;
-		while (next < sections.length && choiceTitle(sections[next]!) === title) {
-			variants.push(sections[next]!);
-			next += 1;
+		let group = groupsByTitle.get(title);
+		if (group == null) {
+			group = {kind: "choice", title, variants: []};
+			groupsByTitle.set(title, group);
+			groups.push(group);
 		}
-
-		groups.push({kind: "choice", title, variants});
-		index = next;
+		group.variants.push(section);
 	}
 
 	return groups;

@@ -170,7 +170,7 @@ Le libellé `📏` précède la rangée de boutons. Le bouton sélectionné comm
 
 ## Groupes de choix : un composant, plusieurs variantes
 
-Certaines parties d'une recette existent en versions interchangeables : garniture aux pommes ou aux cerises, viande maigre ou grasse, glaçage ou crumble. Marquez des sections consécutives avec la même valeur `choice` pour les transformer en groupe de boutons radio.
+Certaines parties d'une recette existent en versions interchangeables : garniture aux pommes ou aux cerises, viande maigre ou grasse, glaçage ou crumble. Donnez aux sections interchangeables la même valeur `choice` pour les transformer en groupe de boutons radio.
 
 ````markdown
 ```kitchenforge
@@ -196,7 +196,7 @@ sections:
 ````
 
 - `choice` est le libellé du groupe ; utilisez le même texte sur toutes les variantes.
-- Les sections ne sont groupées que si elles sont **consécutives**. Une section ordinaire intercalée commence un nouveau groupe, même si le libellé se répète.
+- Toutes les sections ayant la même valeur `choice` forment un seul groupe, même si d'autres sections les séparent. Le groupe est affiché à l'emplacement de sa première variante ; les variantes conservent leur ordre d'origine.
 - La **première variante** est sélectionnée à l'affichage.
 - `●` marque la variante sélectionnée, `○` les autres. Un clic affiche la variante choisie.
 - Le bouton œil à côté de 📋 est global à la recette : l'œil simple affiche toutes les variantes de tous les groupes, l'œil barré revient à une variante par groupe.
@@ -205,7 +205,7 @@ sections:
 - Les formules continuent de fonctionner entre les variantes : un `calc` dans une variante masquée est quand même évalué, donc aucun nombre périmé au changement.
 - La copie (📋) suit ce qui est affiché et conserve le nom du groupe : `__Garniture → 🍎 Pommes__`, ou toutes les variantes quand « tout afficher » est actif.
 
-Les groupes sont indépendants : deux libellés `choice` différents créent deux rangées de boutons.
+Chaque libellé `choice` distinct produit une seule rangée de boutons, quel que soit l'emplacement de ses sections dans la source.
 
 ## Arrondis
 
@@ -236,7 +236,7 @@ Une quantité non nulle ne devient jamais `0` : elle reste au minimum à un pas,
 | `decimals` | niveau racine | Non | Nombre de décimales pour les valeurs calculées et mises à l'échelle. `2` par défaut. |
 | `scales[]` | niveau racine | Non | Liste de `{name, mult}`. Incompatible avec les ingrédients `id`/`calc`. |
 | `sections[]` | niveau racine | **Oui** | Liste de `{name?, choice?, items[]}`. Une section sans nom crée un espace visuel (sauf en haut). |
-| `choice` | section | Non | Libellé de groupe pour les variantes. Les sections consécutives ayant le même `choice` forment un groupe de boutons radio ; la première est affichée au départ. La copie et les sous-titres du mode « tout afficher » utilisent `Groupe → Variante`. |
+| `choice` | section | Non | Libellé de groupe pour les variantes. Toutes les sections ayant le même `choice` forment un seul groupe de boutons radio, placé à l'emplacement de la première variante ; la première est affichée au départ. La copie et les sous-titres du mode « tout afficher » utilisent `Groupe → Variante`. |
 | `name` | ingrédient | **Oui** | Nom de l'ingrédient. |
 | `value` | ingrédient | Oui pour les ingrédients simples et `id` | Nombre. Ignorée si `calc` est présent. |
 | `unit` | ingrédient | Non | Remplace l'unité de la recette pour cet ingrédient. Affichage uniquement. |

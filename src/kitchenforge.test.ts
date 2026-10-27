@@ -706,6 +706,42 @@ sections:
 		expect(heading!.textContent).toBe("Ягодная база → конфитюрный вариант");
 	});
 
+	it("collects non-consecutive variants into one group and copies in render order", async () => {
+		const source = `
+unit: г
+sections:
+  - choice: Начинка
+    name: 🍎 Яблоко
+    items:
+      - name: Яблоки
+        value: 500
+
+  - name: 🥣 Пауза
+    items:
+      - name: Сахар
+        value: 20
+
+  - choice: Начинка
+    name: 🍒 Вишня
+    items:
+      - name: Вишня
+        value: 400
+`;
+		const block = render(source);
+		expect(getChoiceGroups(block!).length).toBe(1);
+		expect(getChoiceTitle(block!)!.textContent).toBe("Начинка");
+		expect(getChoiceButtons(block!).length).toBe(2);
+
+		const pause = Array.from(block!.querySelectorAll<HTMLElement>(".kf-section"))
+			.find(section => section.textContent?.includes("🥣 Пауза"))!;
+		expect(pause.previousElementSibling?.classList.contains("kf-choice-group")).toBe(true);
+
+		getShowAllButton(block!).click();
+		const copied = await copyRecipe(block!);
+		expect(copied.indexOf("__Начинка → 🍎 Яблоко__")).toBeLessThan(copied.indexOf("__Начинка → 🍒 Вишня__"));
+		expect(copied.indexOf("__Начинка → 🍒 Вишня__")).toBeLessThan(copied.indexOf("__🥣 Пауза__"));
+	});
+
 	it("toggles show-all globally across every choice group", () => {
 		const source = `
 unit: г
