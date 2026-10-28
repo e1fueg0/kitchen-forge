@@ -197,9 +197,10 @@ sections:
 
 - `choice` est le libellé du groupe ; utilisez le même texte sur toutes les variantes.
 - Toutes les sections ayant la même valeur `choice` forment un seul groupe, même si d'autres sections les séparent. Le groupe est affiché à l'emplacement de sa première variante ; les variantes conservent leur ordre d'origine.
+- Un groupe qui n'a qu'une seule variante n'est pas un groupe radio : il s'affiche comme une section normale intitulée `Groupe → Variante`.
 - La **première variante** est sélectionnée à l'affichage.
 - `●` marque la variante sélectionnée, `○` les autres. Un clic affiche la variante choisie.
-- Le bouton œil à côté de 📋 est global à la recette : l'œil simple affiche toutes les variantes de tous les groupes, l'œil barré revient à une variante par groupe.
+- Le bouton œil à côté de 📋 est global à la recette : l'œil simple affiche toutes les variantes de tous les groupes, l'œil barré revient à une variante par groupe. Il n'apparaît que si au moins un groupe compte deux variantes ou plus.
 - En mode « tout afficher », les boutons de variantes et les titres de groupes disparaissent. Chaque variante reçoit un sous-titre `h4` composé en `Groupe → Variante`, par ex. `Garniture → 🍎 Pommes`.
 - L'**échelle sélectionnée est conservée** : cliquez sur Moitié, passez de Pommes à Cerises, et Cerises est déjà divisée par deux.
 - Les formules continuent de fonctionner entre les variantes : un `calc` dans une variante masquée est quand même évalué, donc aucun nombre périmé au changement.
@@ -286,7 +287,7 @@ Téléchargez `main.js`, `manifest.json` et `styles.css` depuis la [dernière ve
 ```sh
 npm install
 npm run dev      # esbuild en mode watch
-npm test         # vitest, 122 tests
+npm test         # vitest, 131 tests
 npm run lint
 npm run build    # vérification TypeScript + bundle de production
 ```

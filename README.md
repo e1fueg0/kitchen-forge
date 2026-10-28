@@ -195,9 +195,10 @@ sections:
 
 - `choice` is the group label; use the same text on every variant.
 - All sections with the same `choice` value form one group, even if other sections are between them. The group is rendered where its first variant appears; variants keep their source order.
+- A group with only one variant is not a radio group: it renders as a normal section titled `Group → Variant`.
 - The **first variant** is selected when the block renders.
 - `●` marks the selected variant, `○` the others. Clicking a button shows that variant.
-- The eye button next to 📋 is a recipe-wide toggle: the plain eye shows every variant of every group, the crossed-out eye returns to one variant per group.
+- The eye button next to 📋 is a recipe-wide toggle: the plain eye shows every variant of every group, the crossed-out eye returns to one variant per group. It appears only when at least one group has two or more variants.
 - In show-all mode the variant buttons and group headings disappear. Each variant gets an `h4` heading built as `Group → Variant`, e.g. `Filling → 🍎 Apple`.
 - The selected **scale survives switching**: click Half, switch from Apple to Cherry, and Cherry is already halved.
 - Formulas keep working across variants: a `calc` in a hidden variant is still evaluated, so switching never shows stale numbers.
@@ -284,7 +285,7 @@ Download `main.js`, `manifest.json` and `styles.css` from the [latest release](h
 ```sh
 npm install
 npm run dev      # esbuild in watch mode
-npm test         # vitest, 122 tests
+npm test         # vitest, 131 tests
 npm run lint
 npm run build    # type-check + production bundle
 ```

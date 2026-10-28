@@ -263,10 +263,15 @@ describe("groupSections", () => {
 	});
 
 	it("starts a new group when the choice name changes", () => {
-		const sections = [variant("Apple", "Filling"), variant("Crumble", "Topping")];
+		const sections = [
+			variant("Apple", "Filling"),
+			variant("Cherry", "Filling"),
+			variant("Crumble", "Topping"),
+			variant("Pudding", "Topping"),
+		];
 		expect(groupSections(sections)).toEqual([
-			{kind: "choice", title: "Filling", variants: [sections[0]]},
-			{kind: "choice", title: "Topping", variants: [sections[1]]},
+			{kind: "choice", title: "Filling", variants: [sections[0], sections[1]]},
+			{kind: "choice", title: "Topping", variants: [sections[2], sections[3]]},
 		]);
 	});
 
@@ -299,11 +304,16 @@ describe("groupSections", () => {
 		]);
 	});
 
-	it("keeps a single marked section as a one-variant group", () => {
+	it("turns a single-variant group into a section with a composite name", () => {
 		const sections = [variant("Only", "Filling")];
-		expect(groupSections(sections)).toEqual([
-			{kind: "choice", title: "Filling", variants: [sections[0]]},
-		]);
+		const groups = groupSections(sections);
+
+		expect(groups).toHaveLength(1);
+		expect(groups[0]!.kind).toBe("section");
+		if (groups[0]!.kind !== "section") throw new Error("Expected a section");
+		expect(groups[0]!.section.name).toBe("Filling → Only");
+		expect(groups[0]!.section.choice).toBeUndefined();
+		expect(groups[0]!.section.items).toBe(sections[0]!.items);
 	});
 });
 

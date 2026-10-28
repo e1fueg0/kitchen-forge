@@ -690,7 +690,7 @@ describe("workflow 3: choice groups", () => {
 		expect(getShowAllButton(block!).getAttribute("data-icon")).toBe("eye");
 	});
 
-	it("composes the choice and variant names with an arrow", () => {
+	it("renders a single-variant group as a plain section with a composite name", async () => {
 		const source = `
 unit: г
 sections:
@@ -701,9 +701,16 @@ sections:
         value: 300
 `;
 		const block = render(source);
-		getShowAllButton(block!).click();
-		const heading = visibleVariants(block!)[0]!.querySelector("h4");
-		expect(heading!.textContent).toBe("Ягодная база → конфитюрный вариант");
+
+		expect(getChoiceGroups(block!)).toHaveLength(0);
+		expect(block!.querySelector(".kf-show-all")).toBeNull();
+		const section = block!.querySelector<HTMLElement>(".kf-section");
+		expect(section).not.toBeNull();
+		expect(section!.querySelector("h3")!.textContent).toBe("Ягодная база → конфитюрный вариант");
+		expect(section!.textContent).toContain("Смородина");
+
+		const copied = await copyRecipe(block!);
+		expect(copied).toContain("__Ягодная база → конфитюрный вариант__");
 	});
 
 	it("collects non-consecutive variants into one group and copies in render order", async () => {

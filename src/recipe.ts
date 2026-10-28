@@ -68,7 +68,23 @@ export function groupSections(sections: Section[]): SectionGroup[] {
 		group.variants.push(section);
 	}
 
-	return groups;
+	// A one-variant group is not a choice at all: render it as a normal section
+	// with the composite "Group → Variant" heading. This also lets the renderer
+	// skip the show-all toggle when no real choice groups remain.
+	return groups.map((group): SectionGroup => {
+		if (group.kind !== "choice" || group.variants.length !== 1)
+			return group;
+
+		const variant = group.variants[0]!;
+		return {
+			kind: "section",
+			section: {
+				...variant,
+				name: sectionDisplayName(variant.name, group.title),
+				choice: undefined,
+			},
+		};
+	});
 }
 
 export type Scale = {
