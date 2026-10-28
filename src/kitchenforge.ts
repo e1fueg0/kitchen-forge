@@ -9,6 +9,7 @@ import {
 	formatSectionsToMarkdown,
 	groupSections,
 	MultBinding,
+	parseNumericValue,
 	prefillVars,
 	recalcCalcBindings,
 	Recipe,
@@ -33,6 +34,35 @@ function isVisible(el: HTMLElement): boolean {
 
 function reportError(el: HTMLElement, message: string) {
 	el.createEl('p', {text: 'Error parsing recipe: ' + message, cls: "kf-error"});
+}
+
+// YAML is untyped, so scales need the same runtime checks as sections/items.
+// An empty list is treated as "no scales" so it does not create an implicit
+// 1:1 scale or block id/calc recipes.
+function normalizeScales(value: unknown): Scale[] | string {
+	if (value == null)
+		return [];
+	if (!Array.isArray(value))
+		return "Recipe 'scales' must be an array";
+
+	const scales: Scale[] = [];
+	for (let i = 0; i < value.length; i++) {
+		const entry: unknown = value[i];
+		const label = `Recipe 'scales' entry #${i + 1}`;
+		if (entry == null || typeof entry !== "object" || Array.isArray(entry))
+			return `${label} must be a mapping`;
+
+		const name = (entry as {name?: unknown}).name;
+		if (typeof name !== "string" || name.trim().length === 0)
+			return `${label} must have a non-empty 'name'`;
+
+		const mult = parseNumericValue((entry as {mult?: unknown}).mult);
+		if (mult == null || mult <= 0)
+			return `${label} '${name.trim()}' must have a positive numeric 'mult'`;
+
+		scales.push({name: name.trim(), mult});
+	}
+	return scales;
 }
 
 export function processKitchenForgeBlock(source: string, el: HTMLElement, _: MarkdownPostProcessorContext): void {
@@ -98,6 +128,15 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 				const id = itemId.trim();
 				(item as {id?: string}).id = id.length > 0 ? id : undefined;
 			}
+			const rawValue = (item as {value?: unknown}).value;
+			if (rawValue != null) {
+				const value = parseNumericValue(rawValue);
+				if (value == null) {
+					reportError(el, `Item ${itemLabel} in section ${label} must have a numeric 'value'`);
+					return;
+				}
+				(item as {value?: number}).value = value;
+			}
 		}
 	}
 
@@ -115,6 +154,13 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		return;
 	}
 
+	const normalizedScales = normalizeScales(recipe.scales);
+	if (typeof normalizedScales === "string") {
+		reportError(el, normalizedScales);
+		return;
+	}
+	const scales = normalizedScales;
+
 	if (recipe.decimals == null)
 		recipe.decimals = 2;
 	const decimals = recipe.decimals;
@@ -127,12 +173,28 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 	const multBindings: MultBinding[] = [];
 
 	const hasIdsOrCalcs = prefillVars(recipe, vars);
-	if (recipe.scales && hasIdsOrCalcs) {
+	if (scales.length > 0 && hasIdsOrCalcs) {
 		reportError(el, "Cannot have scales with ids/formulas specified");
 		return;
 	}
 
 	const blockEl = el.createDiv({cls: "kf-block"});
+
+	// Runtime errors (formula/scale/copy failures) are transient: keep a single
+	// element and remove it once the next action succeeds, instead of appending
+	// a new paragraph on every input change.
+	let runtimeErrorEl: HTMLElement | null = null;
+	const setRuntimeError = (message: string | null) => {
+		if (message == null) {
+			runtimeErrorEl?.remove();
+			runtimeErrorEl = null;
+			return;
+		}
+		if (runtimeErrorEl == null)
+			runtimeErrorEl = blockEl.createEl("p", {cls: "kf-error"});
+		runtimeErrorEl.setText(message);
+	};
+
 	const groups = groupSections(recipe.sections);
 	const hasChoiceGroups = groups.some(group => group.kind === "choice");
 
@@ -167,6 +229,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 			});
 			await navigator.clipboard.writeText(formatSectionsToMarkdown(visibleSections));
 
+			setRuntimeError(null);
 			announce("Recipe copied");
 			copyCmp.setButtonText("✅");
 			copyCmp.setDisabled(true);
@@ -177,7 +240,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 			}, 1000);
 		} catch (e) {
 			announce("Copy failed");
-			reportError(el, "Copy failed: " + (e instanceof Error ? e.message : String(e)));
+			setRuntimeError("Copy failed: " + (e instanceof Error ? e.message : String(e)));
 		}
 	});
 
@@ -210,21 +273,20 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 
 	let initialScaleMult = 1;
 
-	if (recipe.scales) {
+	if (scales.length > 0) {
 		// If no user scale has mult=1, append implicit 1:1 scale at the END.
 		// The first scale in the final list (first user-defined) becomes the initially selected one.
-		const scales = recipe.scales.some(s => s.mult === 1)
-			? recipe.scales
-			: [...recipe.scales, {name: ORIGINAL_SCALE_NAME, mult: 1}];
+		const finalScales = scales.some(s => s.mult === 1)
+			? scales
+			: [...scales, {name: ORIGINAL_SCALE_NAME, mult: 1}];
 
-		// scales is non-empty because recipe.scales.length > 0
-		const initialScale = scales[0];
-		initialScaleMult = initialScale!.mult;
+		const initialScale = finalScales[0]!;
+		initialScaleMult = initialScale.mult;
 
 		const btnBlockEl = blockEl.createDiv({cls: "kf-scale-block"});
 		btnBlockEl.createSpan({text: "📏 "});
 		const scaleButtons: {cmp: ButtonComponent; scale: Scale}[] = [];
-		for (const scale of scales) {
+		for (const scale of finalScales) {
 			const scaleCmp = new ButtonComponent(btnBlockEl);
 			const isSelected = scale === initialScale;
 			scaleCmp.setButtonText((isSelected ? SELECTED_PREFIX : SCALE_PREFIX) + scale.name);
@@ -237,13 +299,14 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 					}
 					scaleCmp.setDisabled(true);
 
+					setRuntimeError(null);
 					applyScale(multBindings, scale.mult, decimals);
 
 					window.setTimeout(() => {
 						scaleCmp.setDisabled(false);
 					}, 1000);
 				} catch (e) {
-					reportError(el, "Scale failed: " + (e instanceof Error ? e.message : String(e)));
+					setRuntimeError("Scale failed: " + (e instanceof Error ? e.message : String(e)));
 				}
 			});
 		}
@@ -275,9 +338,10 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 						const nValue = Number(value);
 						vars[id] = nValue;
 						item.value = nValue;
+						setRuntimeError(null);
 						recalcCalcBindings(calcBindings, vars, decimals);
 					} catch (e) {
-						reportError(el, "Formula error: " + (e instanceof Error ? e.message : String(e)));
+						setRuntimeError("Formula error: " + (e instanceof Error ? e.message : String(e)));
 					}
 				});
 			}
@@ -336,6 +400,6 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 	try {
 		recalcCalcBindings(calcBindings, vars, decimals);
 	} catch (e) {
-		reportError(el, "Formula error: " + (e instanceof Error ? e.message : String(e)));
+		setRuntimeError("Formula error: " + (e instanceof Error ? e.message : String(e)));
 	}
 }

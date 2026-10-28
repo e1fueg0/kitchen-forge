@@ -36,6 +36,22 @@ function normalizedText(value: unknown): string {
 	return typeof value === "string" ? value.trim() : "";
 }
 
+// YAML numbers arrive as strings when they are quoted. Parse both forms so
+// formulas always operate on numbers instead of relying on JS coercion (where
+// `"800" + "200"` would concatenate instead of adding).
+export function parseNumericValue(value: unknown): number | null {
+	if (typeof value === "number")
+		return Number.isFinite(value) ? value : null;
+	if (typeof value === "string") {
+		const trimmed = value.trim();
+		if (trimmed.length === 0)
+			return null;
+		const parsed = Number(trimmed);
+		return Number.isFinite(parsed) ? parsed : null;
+	}
+	return null;
+}
+
 function choiceTitle(section: Section): string | null {
 	const title = normalizedText(section.choice);
 	return title.length > 0 ? title : null;
@@ -117,7 +133,7 @@ export type Scale = {
 export type Recipe = {
 	unit?: string;
 	decimals?: number;
-	scales: Scale[];
+	scales?: Scale[];
 	sections: Section[];
 };
 
@@ -173,11 +189,25 @@ export function applyScale(bindings: MultBinding[], mult: number, decimals: numb
 }
 
 export function recalcCalcBindings(bindings: CalcBinding[], vars: Vars, decimals: number): void {
+	// One broken formula must not prevent the remaining formulas from being
+	// recalculated. Process every binding, then rethrow the first error so the
+	// caller can still report it.
+	let firstError: unknown;
+	let hasError = false;
 	for (const binding of bindings) {
-		const calculated = roundForItem(evaluate(jsep(binding.expr), vars), binding.item, decimals);
-		binding.el.setText(`${calculated}`);
-		binding.item.value = calculated;
+		try {
+			const calculated = roundForItem(evaluate(jsep(binding.expr), vars), binding.item, decimals);
+			binding.el.setText(`${calculated}`);
+			binding.item.value = calculated;
+		} catch (e) {
+			if (!hasError) {
+				firstError = e;
+				hasError = true;
+			}
+		}
 	}
+	if (hasError)
+		throw firstError;
 }
 
 export type IdLocation = {
@@ -222,7 +252,9 @@ export function prefillVars(recipe: Recipe, vars: Vars): boolean {
 			if (item == null || typeof item !== "object") continue;
 			const id = normalizedId(item);
 			if (id && item.value != null) {
-				vars[id] = item.value;
+				const value = parseNumericValue(item.value);
+				if (value != null)
+					vars[id] = value;
 			}
 			if (item.calc || id)
 				hasIdsOrCalcs = true;
