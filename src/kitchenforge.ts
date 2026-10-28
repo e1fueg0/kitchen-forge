@@ -58,7 +58,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 			? `'${section.name.trim()}'`
 			: `#${i + 1}`;
 
-		if (section == null || typeof section !== "object") {
+		if (section == null || typeof section !== "object" || Array.isArray(section)) {
 			reportError(el, `Section ${label} must be a mapping`);
 			return;
 		}
@@ -66,8 +66,8 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 			reportError(el, `Section ${label} must have an 'items' array`);
 			return;
 		}
-		// YAML is untyped: reject values that would crash name normalization
-		// or silently disappear from a choice group.
+		// YAML is untyped: reject values that would crash name normalization,
+		// duplicate checks or item rendering.
 		if (section.name != null && typeof section.name !== "string") {
 			reportError(el, `Section ${label} name must be a string`);
 			return;
@@ -75,6 +75,29 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		if (section.choice != null && typeof section.choice !== "string") {
 			reportError(el, `Choice group name in section ${label} must be a string`);
 			return;
+		}
+		for (let j = 0; j < section.items.length; j++) {
+			const item: unknown = section.items[j];
+			const itemName = item != null && typeof item === "object"
+				? (item as {name?: unknown}).name
+				: null;
+			const itemLabel = typeof itemName === "string" && itemName.trim()
+				? `'${itemName.trim()}'`
+				: `#${j + 1}`;
+
+			if (item == null || typeof item !== "object" || Array.isArray(item)) {
+				reportError(el, `Item ${itemLabel} in section ${label} must be a mapping`);
+				return;
+			}
+			const itemId = (item as {id?: unknown}).id;
+			if (itemId != null && typeof itemId !== "string") {
+				reportError(el, `Item ${itemLabel} in section ${label} must have a string 'id'`);
+				return;
+			}
+			if (typeof itemId === "string") {
+				const id = itemId.trim();
+				(item as {id?: string}).id = id.length > 0 ? id : undefined;
+			}
 		}
 	}
 
@@ -104,6 +127,10 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 	const multBindings: MultBinding[] = [];
 
 	const hasIdsOrCalcs = prefillVars(recipe, vars);
+	if (recipe.scales && hasIdsOrCalcs) {
+		reportError(el, "Cannot have scales with ids/formulas specified");
+		return;
+	}
 
 	const blockEl = el.createDiv({cls: "kf-block"});
 	const groups = groupSections(recipe.sections);
@@ -122,7 +149,9 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 	statusEl.setAttribute("aria-live", "polite");
 	statusEl.setAttribute("aria-atomic", "true");
 	const announce = (message: string) => {
-		statusEl.textContent = message;
+		// Replace the node so repeated identical messages are announced again.
+		statusEl.replaceChildren();
+		statusEl.createSpan({text: message});
 	};
 
 	const copyCmp = new ButtonComponent(toolbarEl);
@@ -163,7 +192,6 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		showAllCmp.buttonEl.replaceChildren();
 		showAllCmp.setIcon(showAll ? "eye-off" : "eye");
 		showAllCmp.buttonEl.setAttribute("aria-pressed", String(showAll));
-		showAllCmp.buttonEl.setAttribute("aria-expanded", String(showAll));
 		showAllCmp.buttonEl.setAttribute("aria-label", label);
 		showAllCmp.buttonEl.setAttribute("title", label);
 	};
@@ -183,10 +211,6 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 	let initialScaleMult = 1;
 
 	if (recipe.scales) {
-		if (hasIdsOrCalcs) {
-			reportError(el, "Cannot have scales with ids/formulas specified");
-			return;
-		}
 		// If no user scale has mult=1, append implicit 1:1 scale at the END.
 		// The first scale in the final list (first user-defined) becomes the initially selected one.
 		const scales = recipe.scales.some(s => s.mult === 1)

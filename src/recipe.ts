@@ -158,10 +158,6 @@ export function formatSectionsToMarkdown(sections: Section[]): string {
 	return lines.join("\n");
 }
 
-export function formatRecipeToMarkdown(recipe: Recipe): string {
-	return formatSectionsToMarkdown(recipe.sections);
-}
-
 // Round a computed amount, honoring a per-item `round` step when present and
 // otherwise falling back to the recipe-wide decimal precision.
 function roundForItem(value: number, item: Ingredient, decimals: number): number {
@@ -195,14 +191,21 @@ export type DuplicateId = {
 	second: IdLocation;
 };
 
+function normalizedId(item: Ingredient): string | null {
+	if (typeof item.id !== "string") return null;
+	const id = item.id.trim();
+	return id.length > 0 ? id : null;
+}
+
 // IDs become keys in the shared `vars` object, so duplicates would silently
 // make two inputs write to the same formula variable.
 export function findDuplicateId(recipe: Recipe): DuplicateId | null {
 	const seen = new Map<string, IdLocation>();
 	for (const section of recipe.sections) {
 		for (const item of section.items) {
-			if (!item.id) continue;
-			const id = String(item.id);
+			if (item == null || typeof item !== "object") continue;
+			const id = normalizedId(item);
+			if (id == null) continue;
 			const first = seen.get(id);
 			if (first)
 				return {id, first, second: {section, item}};
@@ -216,10 +219,12 @@ export function prefillVars(recipe: Recipe, vars: Vars): boolean {
 	let hasIdsOrCalcs = false;
 	for (const section of recipe.sections) {
 		for (const item of section.items) {
-			if (item.id && item.value != null) {
-				vars[item.id] = item.value;
+			if (item == null || typeof item !== "object") continue;
+			const id = normalizedId(item);
+			if (id && item.value != null) {
+				vars[id] = item.value;
 			}
-			if (item.calc || item.id)
+			if (item.calc || id)
 				hasIdsOrCalcs = true;
 		}
 	}

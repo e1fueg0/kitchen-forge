@@ -670,6 +670,7 @@ describe("workflow 3: choice groups", () => {
 		const eye = getShowAllButton(block!);
 		expect(eye.getAttribute("data-icon")).toBe("eye-off");
 		expect(eye.getAttribute("aria-pressed")).toBe("true");
+		expect(eye.getAttribute("aria-expanded")).toBeNull();
 		expect(eye.getAttribute("aria-label")).toBe("Show one variant per group");
 	});
 
@@ -985,7 +986,75 @@ sections:
 		expect(variantValue(visibleVariants(block!)[0]!)).toBe("20");
 	});
 
-	it("renders a choice field once and does not add a toolbar for blank/absent choices", () => {
+	it("keeps edited input values when switching variants", async () => {
+		const source = `
+unit: г
+sections:
+  - name: Base
+    items:
+      - name: Water
+        id: water
+        value: 100
+  - choice: Filling
+    name: Apple
+    items:
+      - name: Apples
+        id: apples
+        value: 5
+  - choice: Filling
+    name: Cherry
+    items:
+      - name: Cherries
+        id: cherries
+        value: 7
+`;
+		const block = render(source)!;
+		const appleInput = visibleVariants(block)[0]!.querySelector<HTMLInputElement>("input")!;
+		appleInput.value = "9";
+		appleInput.dispatchEvent(new Event("input"));
+
+		clickChoice(block, "Cherry");
+		clickChoice(block, "Apple");
+
+		expect(visibleVariants(block)[0]!.querySelector<HTMLInputElement>("input")!.value).toBe("9");
+		const copied = await copyRecipe(block);
+		expect(copied).toContain("Apples: **9 г**");
+	});
+
+	it("copies scaled values from the visible variant", async () => {
+		const source = `
+unit: г
+decimals: 1
+scales:
+  - name: Full
+    mult: 1
+  - name: Half
+    mult: .5
+sections:
+  - name: Base
+    items:
+      - name: Flour
+        value: 400
+  - choice: Filling
+    name: Apple
+    items:
+      - name: Apples
+        value: 80
+  - choice: Filling
+    name: Cherry
+    items:
+      - name: Cherries
+        value: 40
+`;
+		const block = render(source)!;
+		getScaleButtons(block).find(button => button.textContent?.includes("Half"))!.click();
+		clickChoice(block, "Cherry");
+
+		const copied = await copyRecipe(block);
+		expect(copied).toContain("Cherries: **20 г**");
+	});
+
+	it("treats blank choice values as plain sections and hides the show-all toggle", () => {
 		const source = `
 unit: г
 sections:
@@ -1029,18 +1098,18 @@ describe("error handling", () => {
 	});
 
 	it("reports an error naming the section when 'items' is missing", () => {
-		render(`
+		expect(render(`
 unit: г
 sections:
   - name: Broken
-`);
+`)).toBeNull();
 		const err = errorEl();
 		expect(err).not.toBeNull();
 		expect(err!.textContent).toContain("Section 'Broken' must have an 'items' array");
 	});
 
 	it("reports an error for a non-string variant name", () => {
-		render(`
+		expect(render(`
 unit: г
 sections:
   - choice: Filling
@@ -1048,14 +1117,14 @@ sections:
     items:
       - name: x
         value: 1
-`);
+`)).toBeNull();
 		const err = errorEl();
 		expect(err).not.toBeNull();
 		expect(err!.textContent).toContain("Section #1 name must be a string");
 	});
 
 	it("reports an error for a non-string choice group name", () => {
-		render(`
+		expect(render(`
 unit: г
 sections:
   - name: A
@@ -1063,10 +1132,51 @@ sections:
     items:
       - name: x
         value: 1
-`);
+`)).toBeNull();
 		const err = errorEl();
 		expect(err).not.toBeNull();
 		expect(err!.textContent).toContain("Choice group name in section 'A' must be a string");
+	});
+
+	it("reports a null item without crashing", () => {
+		expect(render(`
+unit: г
+sections:
+  - name: Broken
+    items:
+      - null
+`)).toBeNull();
+		const err = errorEl();
+		expect(err).not.toBeNull();
+		expect(err!.textContent).toContain("Item #1 in section 'Broken' must be a mapping");
+	});
+
+	it("reports a scalar item without crashing", () => {
+		expect(render(`
+unit: г
+sections:
+  - name: Broken
+    items:
+      - 5
+`)).toBeNull();
+		const err = errorEl();
+		expect(err).not.toBeNull();
+		expect(err!.textContent).toContain("Item #1 in section 'Broken' must be a mapping");
+	});
+
+	it("reports a non-string item id", () => {
+		expect(render(`
+unit: г
+sections:
+  - name: Section
+    items:
+      - name: A
+        id: 0
+        value: 1
+`)).toBeNull();
+		const err = errorEl();
+		expect(err).not.toBeNull();
+		expect(err!.textContent).toContain("Item 'A' in section 'Section' must have a string 'id'");
 	});
 
 	it("catches clipboard failures from the copy button and reports them", async () => {
@@ -1140,7 +1250,7 @@ sections:
 		expect(err!.textContent).toContain("Formula error: Unknown variable: nonexistent");
 	});
 
-	it("rejects scales combined with id/calc items", () => {
+	it("rejects scales combined with id/calc items without rendering a partial block", () => {
 		const source = `
 unit: г
 scales:
@@ -1155,7 +1265,7 @@ sections:
       - name: B
         calc: a * 2
 `;
-		render(source);
+		expect(render(source)).toBeNull();
 		const err = errorEl();
 		expect(err).not.toBeNull();
 		expect(err!.textContent).toContain("Cannot have scales with ids/formulas specified");
@@ -1218,6 +1328,50 @@ sections:
 		expect(err!.textContent).toContain("Duplicate id 'salt'");
 		expect(err!.textContent).toContain("'Salt' in 'Sauce'");
 		expect(err!.textContent).toContain("'Salt' in 'Dough'");
+	});
+
+	it("rejects duplicate ids across choice variants", () => {
+		const source = `
+unit: г
+sections:
+  - choice: Filling
+    name: Apple
+    items:
+      - name: Apples
+        id: fruit
+        value: 5
+  - choice: Filling
+    name: Cherry
+    items:
+      - name: Cherries
+        id: fruit
+        value: 7
+`;
+		expect(render(source)).toBeNull();
+		const err = errorEl();
+		expect(err).not.toBeNull();
+		expect(err!.textContent).toContain("Duplicate id 'fruit'");
+		expect(err!.textContent).toContain("'Apples' in 'Apple'");
+		expect(err!.textContent).toContain("'Cherries' in 'Cherry'");
+	});
+
+	it("trims ids before checking for duplicates", () => {
+		const source = `
+unit: г
+sections:
+  - name: Sauce
+    items:
+      - name: Salt
+        id: " salt "
+        value: 5
+  - name: Dough
+    items:
+      - name: Salt
+        id: salt
+        value: 2
+`;
+		expect(render(source)).toBeNull();
+		expect(errorEl()!.textContent).toContain("Duplicate id 'salt'");
 	});
 
 	it("allows repeated section and item names when the ids are unique", () => {

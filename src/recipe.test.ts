@@ -6,7 +6,6 @@ import {
 	applyScale,
 	CalcBinding,
 	findDuplicateId,
-	formatRecipeToMarkdown,
 	formatSectionsToMarkdown,
 	groupSections,
 	Ingredient,
@@ -20,64 +19,6 @@ import {
 
 beforeAll(() => {
 	jsep.addBinaryOp("@", 10);
-});
-
-describe("formatRecipeToMarkdown", () => {
-	it("formats a single section with numbered items", () => {
-		const recipe: Recipe = {
-			scales: [],
-			sections: [
-				{
-					name: "Тесто",
-					items: [
-						{name: "Мука", value: 400, unit: "г"},
-						{name: "Сахар", value: 50, unit: "г"},
-					],
-				},
-			],
-		};
-		expect(formatRecipeToMarkdown(recipe)).toBe(
-			"__Тесто__\n\n 1. Мука: **400 г**\n 2. Сахар: **50 г**\n",
-		);
-	});
-
-	it("formats multiple sections with their own numbering and a trailing blank line each", () => {
-		const recipe: Recipe = {
-			scales: [],
-			sections: [
-				{name: "A", items: [{name: "x", value: 1, unit: "g"}]},
-				{name: "B", items: [
-					{name: "y", value: 2, unit: "g"},
-					{name: "z", value: 3, unit: "ml"},
-				]},
-			],
-		};
-		expect(formatRecipeToMarkdown(recipe)).toBe(
-			[
-				"__A__",
-				"",
-				" 1. x: **1 g**",
-				"",
-				"__B__",
-				"",
-				" 1. y: **2 g**",
-				" 2. z: **3 ml**",
-				"",
-			].join("\n"),
-		);
-	});
-
-	it("renders missing value/unit as 'undefined' (current behaviour, surfaces under-spec'd items)", () => {
-		const recipe: Recipe = {
-			scales: [],
-			sections: [
-				{name: "X", items: [{name: "broken"}]},
-			],
-		};
-		expect(formatRecipeToMarkdown(recipe)).toBe(
-			"__X__\n\n 1. broken: **undefined undefined**\n",
-		);
-	});
 });
 
 describe("applyScale", () => {
@@ -380,6 +321,15 @@ describe("prefillVars", () => {
 		expect(vars).toEqual({});
 	});
 
+	it("trims ids and treats blank ids as absent", () => {
+		const vars: Vars = {};
+		prefillVars(makeRecipe([
+			{name: "A", id: " a ", value: 1},
+			{name: "B", id: "   ", value: 2},
+		]), vars);
+		expect(vars).toEqual({a: 1});
+	});
+
 	it("aggregates vars across multiple sections", () => {
 		const vars: Vars = {};
 		const recipe: Recipe = {
@@ -482,6 +432,34 @@ describe("findDuplicateId", () => {
 					{name: "Salt", value: 5},
 					{name: "Pepper", id: "", value: 1},
 					{name: "Sugar", id: "sugar", value: 2},
+				],
+			}],
+		};
+		expect(findDuplicateId(recipe)).toBeNull();
+	});
+
+	it("trims ids before comparing them", () => {
+		const recipe: Recipe = {
+			scales: [],
+			sections: [{
+				name: "Sauce",
+				items: [
+					{name: "Salt", id: " salt ", value: 5},
+					{name: "More salt", id: "salt", value: 1},
+				],
+			}],
+		};
+		expect(findDuplicateId(recipe)?.id).toBe("salt");
+	});
+
+	it("ignores invalid item entries instead of crashing", () => {
+		const recipe: Recipe = {
+			scales: [],
+			sections: [{
+				name: "Sauce",
+				items: [
+					null as unknown as Ingredient,
+					5 as unknown as Ingredient,
 				],
 			}],
 		};

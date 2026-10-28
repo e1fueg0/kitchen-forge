@@ -27,7 +27,7 @@ kitchenForge réunit les deux dans Obsidian sous forme de bloc `kitchenforge`. L
 
 > Un bloc ne peut pas mélanger `scales` avec `id`/`calc`. kitchenForge affiche une erreur au lieu de deviner.
 
-Les sections peuvent aussi former des **groupes de choix** — des variantes d'un même composant, sélectionnables par boutons radio. Les groupes de choix fonctionnent dans les deux modes.
+Les sections peuvent aussi former des **groupes de choix** — des variantes interchangeables d'un même composant. Les groupes de choix fonctionnent dans les deux modes.
 
 ## Mode calcul : des ratios qui suivent la viande
 
@@ -170,7 +170,7 @@ Le libellé `📏` précède la rangée de boutons. Le bouton sélectionné comm
 
 ## Groupes de choix : un composant, plusieurs variantes
 
-Certaines parties d'une recette existent en versions interchangeables : garniture aux pommes ou aux cerises, viande maigre ou grasse, glaçage ou crumble. Donnez aux sections interchangeables la même valeur `choice` pour les transformer en groupe de boutons radio.
+Certaines parties d'une recette existent en versions interchangeables : garniture aux pommes ou aux cerises, viande maigre ou grasse, glaçage ou crumble. Donnez aux sections interchangeables la même valeur `choice` pour les transformer en sélecteur de variantes.
 
 ````markdown
 ```kitchenforge
@@ -196,9 +196,9 @@ sections:
 ````
 
 - `choice` est le libellé du groupe ; utilisez le même texte sur toutes les variantes.
-- Un `name` de variante vide devient `Variant N` partout : boutons, sous-titres du mode « tout afficher » et Markdown copié. Les valeurs `name` ou `choice` qui ne sont pas des chaînes provoquent une erreur au lieu d'être ignorées silencieusement.
+- Un `name` de variante vide devient `Variant N` partout : boutons, sous-titres du mode « tout afficher » et Markdown copié. Les valeurs `name` ou `choice` qui ne sont pas des chaînes (sauf `null`) provoquent une erreur au lieu d'être ignorées silencieusement.
 - Toutes les sections ayant la même valeur `choice` forment un seul groupe, même si d'autres sections les séparent. Le groupe est affiché à l'emplacement de sa première variante ; les variantes conservent leur ordre d'origine.
-- Un groupe qui n'a qu'une seule variante n'est pas un groupe radio : il s'affiche comme une section normale intitulée `Groupe → Variante`.
+- Un groupe qui n'a qu'une seule variante n'est pas un groupe de choix : il s'affiche comme une section normale intitulée `Groupe → Variante`.
 - La **première variante** est sélectionnée à l'affichage.
 - `●` marque la variante sélectionnée, `○` les autres. Un clic affiche la variante choisie.
 - Le bouton œil à côté de 📋 est global à la recette : l'œil simple affiche toutes les variantes de tous les groupes, l'œil barré revient à une variante par groupe. Il n'apparaît que si au moins un groupe compte deux variantes ou plus.
@@ -238,11 +238,11 @@ Une quantité non nulle ne devient jamais `0` : elle reste au minimum à un pas,
 | `decimals` | niveau racine | Non | Nombre de décimales pour les valeurs calculées et mises à l'échelle. `2` par défaut. |
 | `scales[]` | niveau racine | Non | Liste de `{name, mult}`. Incompatible avec les ingrédients `id`/`calc`. |
 | `sections[]` | niveau racine | **Oui** | Liste de `{name?, choice?, items[]}`. Une section sans nom crée un espace visuel (sauf en haut). |
-| `choice` | section | Non | Libellé de groupe pour les variantes. Toutes les sections ayant le même `choice` forment un seul groupe de boutons radio, placé à l'emplacement de la première variante ; la première est affichée au départ. La copie et les sous-titres du mode « tout afficher » utilisent `Groupe → Variante`. |
+| `choice` | section | Non | Libellé de groupe pour les variantes. Toutes les sections ayant le même `choice` forment un seul sélecteur de variantes, placé à l'emplacement de la première variante ; la première est affichée au départ. La copie et les sous-titres du mode « tout afficher » utilisent `Groupe → Variante`. |
 | `name` | ingrédient | **Oui** | Nom de l'ingrédient. |
 | `value` | ingrédient | Oui pour les ingrédients simples et `id` | Nombre. Ignorée si `calc` est présent. |
 | `unit` | ingrédient | Non | Remplace l'unité de la recette pour cet ingrédient. Affichage uniquement. |
-| `id` | ingrédient | Non | Expose l'ingrédient comme champ modifiable. Les autres ingrédients peuvent le référencer dans `calc`. Nécessite une `value` numérique. Doit être unique dans toute la recette. |
+| `id` | ingrédient | Non | Chaîne qui expose l'ingrédient comme champ modifiable. Les autres ingrédients peuvent le référencer dans `calc`. Nécessite une `value` numérique. Les espaces sont supprimés ; doit être unique dans toute la recette. |
 | `calc` | ingrédient | Non | Expression. Opérateurs `+ - * / @` et parenthèses. À utiliser à la place de `value`. |
 | `round` | ingrédient | Non | Arrondit la valeur calculée/mise à l'échelle au multiple de ce pas (par ex. `25`, `1`). Remplace `decimals` ; une quantité non nulle ne devient jamais `0`. |
 
@@ -259,7 +259,10 @@ C'est pratique pour coller la recette dans une note, une liste de courses ou un 
 | Message ou symptôme | Cause probable | Correction |
 |---|---|---|
 | `Recipe must have a 'sections' array` | Le bloc n'a pas de liste `sections` | Ajoutez `sections:` avec au moins une section. |
+| `Section … must be a mapping` | Une entrée de `sections` n'est pas un mapping | Faites de chaque section un bloc `- name: …` avec `items:`. |
 | `Section '…' must have an 'items' array` | Une section n'a pas de liste `items` | Ajoutez une liste `items:` à cette section. |
+| `Item … must be a mapping` | Une entrée de `items` n'est pas un mapping | Faites de chaque ingrédient un bloc `- name: …`. |
+| `Item … must have a string 'id'` | `id` est un nombre ou un booléen | Utilisez un id texte, par exemple `id: sel`. |
 | `Unknown variable: …` | `calc` référence un id inexistant ou sans `value` | Ajoutez l'id avec une valeur numérique, ou corrigez l'orthographe. |
 | `Duplicate id '…'` | Le même id est utilisé par plusieurs ingrédients | Donnez un id unique à chaque ingrédient. |
 | `Cannot have scales with ids/formulas specified` | Modes mélangés | Supprimez `scales`, ou supprimez tous les `id`/`calc`. |

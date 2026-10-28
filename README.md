@@ -27,7 +27,7 @@ kitchenForge puts both workflows into Obsidian as a fenced `kitchenforge` block.
 
 > A block cannot mix `scales` with `id`/`calc`. kitchenForge reports an error instead of guessing.
 
-Sections can also be grouped into **choice groups** — radio-button variants of one component. Choice groups work in both modes.
+Sections can also be grouped into **choice groups** — selectable variants of one component. Choice groups work in both modes.
 
 ## Calculation mode: ratios that follow the meat
 
@@ -168,7 +168,7 @@ The `📏` label prefixes the button row. The selected button starts with `✅`;
 
 ## Choice groups: one component, several variants
 
-Some parts of a recipe exist in interchangeable versions: apple or cherry filling, lean or fatty mince, glaze or crumble. Give interchangeable sections the same `choice` value to turn them into a radio group.
+Some parts of a recipe exist in interchangeable versions: apple or cherry filling, lean or fatty mince, glaze or crumble. Give interchangeable sections the same `choice` value to turn them into a variant switcher.
 
 ````markdown
 ```kitchenforge
@@ -194,9 +194,9 @@ sections:
 ````
 
 - `choice` is the group label; use the same text on every variant.
-- A blank variant `name` falls back to `Variant N` everywhere: buttons, show-all headings and copied Markdown. Non-string `name` or `choice` values are reported as errors instead of being silently ignored.
+- A blank variant `name` falls back to `Variant N` everywhere: buttons, show-all headings and copied Markdown. Non-string `name` or `choice` values (other than `null`) are reported as errors instead of being silently ignored.
 - All sections with the same `choice` value form one group, even if other sections are between them. The group is rendered where its first variant appears; variants keep their source order.
-- A group with only one variant is not a radio group: it renders as a normal section titled `Group → Variant`.
+- A group with only one variant is not a choice group: it renders as a normal section titled `Group → Variant`.
 - The **first variant** is selected when the block renders.
 - `●` marks the selected variant, `○` the others. Clicking a button shows that variant.
 - The eye button next to 📋 is a recipe-wide toggle: the plain eye shows every variant of every group, the crossed-out eye returns to one variant per group. It appears only when at least one group has two or more variants.
@@ -236,11 +236,11 @@ A non-zero amount never becomes `0`: it stays at least one step in the same dire
 | `decimals` | top level | No | Decimal places for computed and scaled amounts. Defaults to `2`. |
 | `scales[]` | top level | No | List of `{name, mult}`. Mutually exclusive with `id`/`calc` items. |
 | `sections[]` | top level | **Yes** | List of `{name?, choice?, items[]}`. A section without a name renders as a visual gap (except at the top). |
-| `choice` | section | No | Group label for variant sections. All sections with the same `choice` form one radio group, placed at the first variant's position; the first variant is shown initially. Copied and show-all headings read `Group → Variant`. |
+| `choice` | section | No | Group label for variant sections. All sections with the same `choice` form one variant switcher, placed at the first variant's position; the first variant is shown initially. Copied and show-all headings read `Group → Variant`. |
 | `name` | item | **Yes** | Ingredient name. |
 | `value` | item | Yes for plain and `id` items | Number. Ignored when `calc` is present. |
 | `unit` | item | No | Overrides the recipe-level unit for this item. Display-only. |
-| `id` | item | No | Exposes the item as an editable input. Other items can reference the id in `calc`. Needs a numeric `value`. Must be unique across the whole recipe. |
+| `id` | item | No | A string that exposes the item as an editable input. Other items can reference the id in `calc`. Needs a numeric `value`. Whitespace is trimmed; must be unique across the whole recipe. |
 | `calc` | item | No | Expression. Supports `+ - * / @` and parentheses. Use instead of `value`. |
 | `round` | item | No | Snap computed/scaled amount to the nearest multiple of this step (e.g. `25`, `1`). Overrides `decimals`; a non-zero amount never becomes `0`. |
 
@@ -257,7 +257,10 @@ This is handy for pasting into a note, a shopping list, or a message while cooki
 | Message or symptom | Likely cause | Fix |
 |---|---|---|
 | `Recipe must have a 'sections' array` | Missing `sections` | Add `sections:` with at least one section. |
+| `Section … must be a mapping` | A list entry under `sections` is not a mapping | Make every section a `- name: …` block with `items:`. |
 | `Section '…' must have an 'items' array` | A section has no `items` | Add an `items:` list to that section. |
+| `Item … must be a mapping` | A list entry under `items` is not a mapping | Make every item a `- name: …` block. |
+| `Item … must have a string 'id'` | `id` is a number or boolean | Use a text id, for example `id: salt`. |
 | `Unknown variable: …` | `calc` references an id that does not exist or has no `value` | Add the id with a numeric value, or fix the spelling. |
 | `Duplicate id '…'` | The same id is used by more than one item | Give each item a unique id. |
 | `Cannot have scales with ids/formulas specified` | Mixed modes | Remove `scales`, or remove every `id`/`calc`. |
