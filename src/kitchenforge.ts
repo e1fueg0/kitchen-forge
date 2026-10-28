@@ -52,9 +52,28 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		reportError(el, "Recipe must have a 'sections' array");
 		return;
 	}
-	for (const section of recipe.sections) {
+	for (let i = 0; i < recipe.sections.length; i++) {
+		const section = recipe.sections[i]!;
+		const label = section != null && typeof section.name === "string" && section.name.trim()
+			? `'${section.name.trim()}'`
+			: `#${i + 1}`;
+
+		if (section == null || typeof section !== "object") {
+			reportError(el, `Section ${label} must be a mapping`);
+			return;
+		}
 		if (!Array.isArray(section.items)) {
-			reportError(el, `Section '${section.name}' must have an 'items' array`);
+			reportError(el, `Section ${label} must have an 'items' array`);
+			return;
+		}
+		// YAML is untyped: reject values that would crash name normalization
+		// or silently disappear from a choice group.
+		if (section.name != null && typeof section.name !== "string") {
+			reportError(el, `Section ${label} name must be a string`);
+			return;
+		}
+		if (section.choice != null && typeof section.choice !== "string") {
+			reportError(el, `Choice group name in section ${label} must be a string`);
 			return;
 		}
 	}

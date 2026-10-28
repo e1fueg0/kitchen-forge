@@ -196,6 +196,7 @@ sections:
 ````
 
 - `choice` est le libellé du groupe ; utilisez le même texte sur toutes les variantes.
+- Un `name` de variante vide devient `Variant N` partout : boutons, sous-titres du mode « tout afficher » et Markdown copié. Les valeurs `name` ou `choice` qui ne sont pas des chaînes provoquent une erreur au lieu d'être ignorées silencieusement.
 - Toutes les sections ayant la même valeur `choice` forment un seul groupe, même si d'autres sections les séparent. Le groupe est affiché à l'emplacement de sa première variante ; les variantes conservent leur ordre d'origine.
 - Un groupe qui n'a qu'une seule variante n'est pas un groupe radio : il s'affiche comme une section normale intitulée `Groupe → Variante`.
 - La **première variante** est sélectionnée à l'affichage.
@@ -287,7 +288,7 @@ Téléchargez `main.js`, `manifest.json` et `styles.css` depuis la [dernière ve
 ```sh
 npm install
 npm run dev      # esbuild en mode watch
-npm test         # vitest, 131 tests
+npm test         # vitest, 139 tests
 npm run lint
 npm run build    # vérification TypeScript + bundle de production
 ```

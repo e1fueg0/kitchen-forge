@@ -194,6 +194,7 @@ sections:
 ````
 
 - `choice` is the group label; use the same text on every variant.
+- A blank variant `name` falls back to `Variant N` everywhere: buttons, show-all headings and copied Markdown. Non-string `name` or `choice` values are reported as errors instead of being silently ignored.
 - All sections with the same `choice` value form one group, even if other sections are between them. The group is rendered where its first variant appears; variants keep their source order.
 - A group with only one variant is not a radio group: it renders as a normal section titled `Group → Variant`.
 - The **first variant** is selected when the block renders.
@@ -285,7 +286,7 @@ Download `main.js`, `manifest.json` and `styles.css` from the [latest release](h
 ```sh
 npm install
 npm run dev      # esbuild in watch mode
-npm test         # vitest, 131 tests
+npm test         # vitest, 139 tests
 npm run lint
 npm run build    # type-check + production bundle
 ```

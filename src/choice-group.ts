@@ -1,5 +1,5 @@
 import {ButtonComponent} from "obsidian";
-import {Section, sectionDisplayName} from "./recipe";
+import {Section, sectionDisplayName, variantName} from "./recipe";
 
 const CHOICE_SELECTED_PREFIX = "● ";
 const CHOICE_PREFIX = "○ ";
@@ -41,7 +41,7 @@ export class ChoiceGroupView {
 		if (title) this.pickerEl.setAttribute("aria-label", title);
 
 		variants.forEach((section, index) => {
-			const label = (section.name || `Variant ${index + 1}`).trim();
+			const label = variantName(section.name, index);
 			const wrapper = this.element.createDiv({cls: "kf-choice-variant"});
 			const wrapperId = `${this.element.id}-variant-${index + 1}`;
 			wrapper.id = wrapperId;

@@ -239,6 +239,12 @@ describe("sectionDisplayName", () => {
 	it("falls back to the choice when the variant name is blank", () => {
 		expect(sectionDisplayName("   ", "Группа")).toBe("Группа");
 	});
+
+	it("ignores non-string names and choices instead of crashing", () => {
+		expect(sectionDisplayName(123, "Группа")).toBe("Группа");
+		expect(sectionDisplayName(null, "Группа")).toBe("Группа");
+		expect(sectionDisplayName("Вариант", 123)).toBe("Вариант");
+	});
 });
 
 describe("groupSections", () => {
@@ -304,6 +310,24 @@ describe("groupSections", () => {
 		]);
 	});
 
+	it("normalizes variant names and uses a stable fallback for blank ones", () => {
+		const sections = [
+			variant("  Apple  ", "Filling"),
+			variant("   ", "Filling"),
+			variant(123 as unknown as string, "Filling"),
+		];
+		const groups = groupSections(sections);
+
+		expect(groups).toHaveLength(1);
+		if (groups[0]!.kind !== "choice") throw new Error("Expected a choice group");
+		expect(groups[0]!.variants.map(variant => variant.name)).toEqual(["Apple", "Variant 2", "Variant 3"]);
+	});
+
+	it("treats a non-string choice as absent", () => {
+		const sections = [variant("Apple", 123 as unknown as string)];
+		expect(groupSections(sections)).toEqual([{kind: "section", section: sections[0]}]);
+	});
+
 	it("turns a single-variant group into a section with a composite name", () => {
 		const sections = [variant("Only", "Filling")];
 		const groups = groupSections(sections);
@@ -314,6 +338,13 @@ describe("groupSections", () => {
 		expect(groups[0]!.section.name).toBe("Filling → Only");
 		expect(groups[0]!.section.choice).toBeUndefined();
 		expect(groups[0]!.section.items).toBe(sections[0]!.items);
+	});
+
+	it("uses the fallback in a one-variant group with a blank name", () => {
+		const groups = groupSections([variant("   ", "Filling")]);
+		expect(groups).toEqual([
+			{kind: "section", section: {name: "Filling → Variant 1", choice: undefined, items: []}},
+		]);
 	});
 });
 

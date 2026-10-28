@@ -713,6 +713,54 @@ sections:
 		expect(copied).toContain("__Ягодная база → конфитюрный вариант__");
 	});
 
+	it("uses the variant fallback in a one-variant group", () => {
+		const source = `
+unit: г
+sections:
+  - choice: Начинка
+    name: "   "
+    items:
+      - name: Яблоки
+        value: 500
+`;
+		const block = render(source);
+		const section = block!.querySelector<HTMLElement>(".kf-section");
+		expect(section!.querySelector("h3")!.textContent).toBe("Начинка → Variant 1");
+	});
+
+	it("uses the same Variant N fallback in buttons, headings and copied Markdown", async () => {
+		const source = `
+unit: г
+sections:
+  - choice: Начинка
+    name: "   "
+    items:
+      - name: Яблоки
+        value: 500
+
+  - choice: Начинка
+    items:
+      - name: Вишня
+        value: 400
+`;
+		const block = render(source);
+
+		const buttons = getChoiceButtons(block!);
+		expect(buttons[0]!.textContent).toContain("Variant 1");
+		expect(buttons[0]!.getAttribute("aria-label")).toBe("Show variant Variant 1");
+		expect(buttons[1]!.textContent).toContain("Variant 2");
+		expect(buttons[1]!.getAttribute("aria-label")).toBe("Show variant Variant 2");
+
+		clickChoice(block!, "Variant 2");
+		const copied = await copyRecipe(block!);
+		expect(copied).toContain("__Начинка → Variant 2__");
+		expect(copied).not.toContain("__Начинка__");
+
+		getShowAllButton(block!).click();
+		const headings = visibleVariants(block!).map(variant => variant.querySelector("h4")!.textContent);
+		expect(headings).toEqual(["Начинка → Variant 1", "Начинка → Variant 2"]);
+	});
+
 	it("collects non-consecutive variants into one group and copies in render order", async () => {
 		const source = `
 unit: г
@@ -989,6 +1037,36 @@ sections:
 		const err = errorEl();
 		expect(err).not.toBeNull();
 		expect(err!.textContent).toContain("Section 'Broken' must have an 'items' array");
+	});
+
+	it("reports an error for a non-string variant name", () => {
+		render(`
+unit: г
+sections:
+  - choice: Filling
+    name: 123
+    items:
+      - name: x
+        value: 1
+`);
+		const err = errorEl();
+		expect(err).not.toBeNull();
+		expect(err!.textContent).toContain("Section #1 name must be a string");
+	});
+
+	it("reports an error for a non-string choice group name", () => {
+		render(`
+unit: г
+sections:
+  - name: A
+    choice: 123
+    items:
+      - name: x
+        value: 1
+`);
+		const err = errorEl();
+		expect(err).not.toBeNull();
+		expect(err!.textContent).toContain("Choice group name in section 'A' must be a string");
 	});
 
 	it("catches clipboard failures from the copy button and reports them", async () => {

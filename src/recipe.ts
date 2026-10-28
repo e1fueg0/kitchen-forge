@@ -30,20 +30,32 @@ export type SectionGroup =
 	| { kind: "section"; section: Section }
 	| { kind: "choice"; title: string; variants: Section[] };
 
+// YAML values are untyped, so names and choice labels must be checked at
+// runtime instead of trusting the TypeScript declarations.
+function normalizedText(value: unknown): string {
+	return typeof value === "string" ? value.trim() : "";
+}
+
 function choiceTitle(section: Section): string | null {
-	const raw = section.choice;
-	if (typeof raw !== "string") return null;
-	const title = raw.trim();
+	const title = normalizedText(section.choice);
 	return title.length > 0 ? title : null;
+}
+
+// Variants without a usable name still need a label: the UI, copied Markdown
+// and show-all headings all use this fallback.
+export function variantName(name: unknown, index: number): string {
+	const label = normalizedText(name);
+	return label.length > 0 ? label : `Variant ${index + 1}`;
 }
 
 // Sections inside a choice group are addressed as "Group → Variant". The
 // composite name is used in copied Markdown and in show-all headings, where
 // the group label is no longer visible next to the section.
-export function sectionDisplayName(name: string, choice?: string): string {
-	const group = typeof choice === "string" ? choice.trim() : "";
-	if (group.length === 0) return name;
-	const variant = name?.trim() ?? "";
+export function sectionDisplayName(name: unknown, choice?: unknown): string {
+	const group = normalizedText(choice);
+	if (group.length === 0)
+		return typeof name === "string" ? name : "";
+	const variant = normalizedText(name);
 	return variant.length > 0 ? `${group} → ${variant}` : group;
 }
 
@@ -72,10 +84,20 @@ export function groupSections(sections: Section[]): SectionGroup[] {
 	// with the composite "Group → Variant" heading. This also lets the renderer
 	// skip the show-all toggle when no real choice groups remain.
 	return groups.map((group): SectionGroup => {
-		if (group.kind !== "choice" || group.variants.length !== 1)
+		if (group.kind !== "choice")
 			return group;
 
-		const variant = group.variants[0]!;
+		// Normalize variant labels once, so the buttons, headings and copied
+		// Markdown all agree on the same fallback for blank names.
+		const variants = group.variants.map((variant, index): Section => ({
+			...variant,
+			name: variantName(variant.name, index),
+		}));
+
+		if (variants.length !== 1)
+			return {kind: "choice", title: group.title, variants};
+
+		const variant = variants[0]!;
 		return {
 			kind: "section",
 			section: {
