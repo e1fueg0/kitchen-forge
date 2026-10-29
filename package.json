@@ -1,6 +1,6 @@
 {
 	"name": "kitchen-forge",
-	"version": "1.1.0",
+	"version": "1.2.0",
 	"description": "Interactive recipe blocks for Obsidian. Describe ingredients in YAML, then scale the whole recipe with one click or recompute dependent quantities live from formulas.",
 	"main": "main.js",
 	"type": "module",
