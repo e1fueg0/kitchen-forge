@@ -469,6 +469,29 @@ sections:
 		expect(errorEl()?.textContent ?? "").toMatch(/decimals/i);
 	});
 
+	it("accepts decimals at the supported precision limit", () => {
+		const block = render(`unit: g
+decimals: 15
+sections:
+  - name: S
+    items:
+      - {name: A, value: 100}
+`);
+		expect(block).not.toBeNull();
+	});
+
+	it("rejects decimals above the supported precision limit", () => {
+		const block = render(`unit: g
+decimals: 16
+sections:
+  - name: S
+    items:
+      - {name: A, value: 100}
+`);
+		expect(block).toBeNull();
+		expect(errorEl()?.textContent ?? "").toMatch(/decimals/i);
+	});
+
 	it("rejects an object value", () => {
 		const block = render(`unit: g
 sections:

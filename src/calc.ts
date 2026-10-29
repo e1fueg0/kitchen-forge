@@ -15,7 +15,14 @@ export function round(value: number, decimals: number): number {
 	if (!Number.isFinite(value))
 		return value;
 
-	const rounded = Math.round(shiftDecimal(value, decimals));
+	const shifted = shiftDecimal(value, decimals);
+	// Shifting can overflow for very large values or absurd precision. Such a
+	// value is already outside the precision double can represent, so there is
+	// nothing useful to round.
+	if (!Number.isFinite(shifted))
+		return value;
+
+	const rounded = Math.round(shifted);
 	// `Math.round` uses JS semantics (half toward +Infinity), including its
 	// negative-zero result for values such as -0.5. Decimal shifting loses the
 	// sign of -0, so restore it explicitly.

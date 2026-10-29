@@ -35,6 +35,11 @@ describe("round", () => {
 		expect(round(8.575, 2)).toBe(8.58);
 	});
 
+	it("leaves values unchanged when decimal shifting would overflow", () => {
+		expect(round(1e307, 2)).toBe(1e307);
+		expect(round(1.5, 309)).toBe(1.5);
+	});
+
 	it("handles negative decimals (rounds to tens, hundreds, ...)", () => {
 		expect(round(1234, -1)).toBe(1230);
 		expect(round(1250, -2)).toBe(1300);

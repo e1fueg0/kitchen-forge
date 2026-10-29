@@ -213,8 +213,10 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		decimals = 2;
 	} else {
 		const parsed = parseNumericValue(decimals);
-		if (parsed == null || !Number.isInteger(parsed) || parsed < 0) {
-			reportError(el, "Recipe 'decimals' must be a non-negative integer");
+		// More than 15 decimal places is beyond double precision and would
+		// also make decimal shifting overflow for ordinary values.
+		if (parsed == null || !Number.isInteger(parsed) || parsed < 0 || parsed > 15) {
+			reportError(el, "Recipe 'decimals' must be an integer between 0 and 15");
 			return;
 		}
 		decimals = parsed;
