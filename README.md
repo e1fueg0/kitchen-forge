@@ -289,7 +289,7 @@ Download `main.js`, `manifest.json` and `styles.css` from the [latest release](h
 ```sh
 npm install
 npm run dev      # esbuild in watch mode
-npm test         # vitest, 139 tests
+npm test         # vitest, 192 tests
 npm run lint
 npm run build    # type-check + production bundle
 ```

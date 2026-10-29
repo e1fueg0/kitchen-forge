@@ -504,7 +504,7 @@ sections:
 	});
 });
 
-describe.skip("finding 9: empty number input", () => {
+describe("finding 9: empty number input", () => {
 	it("does not show 0 in formulas while the input is empty", () => {
 		const block = render(`unit: g
 sections:
@@ -517,11 +517,13 @@ sections:
 		const input = inputFor(items(block, 0)[0])!;
 		input.value = "";
 		input.dispatchEvent(new Event("input"));
-		expect(input.value === "" && valueText(items(block, 0)[1]) === "0").toBe(false);
+		expect(input.value).toBe("");
+		expect(valueText(items(block, 0)[1])).toBe("");
+		expect(errorEl()?.textContent ?? "").toMatch(/Unknown variable: a/);
 	});
 });
 
-describe.skip("finding 10: float rounding", () => {
+describe("finding 10: float rounding", () => {
 	it("rounds 1.005 to 1.01", () => {
 		expect(round(1.005, 2)).toBe(1.01);
 	});
@@ -531,7 +533,7 @@ describe.skip("finding 10: float rounding", () => {
 	});
 });
 
-describe.skip("finding 11: unary minus", () => {
+describe("finding 11: unary minus", () => {
 	it("evaluates a leading unary minus", () => {
 		const el = {setText: vi.fn()};
 		const item = {name: "A"} as Ingredient;
@@ -540,7 +542,7 @@ describe.skip("finding 11: unary minus", () => {
 	});
 });
 
-describe.skip("finding 12: error prefix", () => {
+describe("finding 12: error prefix", () => {
 	it("does not label formula errors as parse errors", () => {
 		render(`unit: g
 sections:
@@ -552,7 +554,7 @@ sections:
 	});
 });
 
-describe.skip("finding 13: section rendering", () => {
+describe("finding 13: section rendering", () => {
 	it("does not render a whitespace-only heading", () => {
 		const block = render(`unit: g
 sections:
@@ -569,12 +571,17 @@ sections:
 sections:
   - items:
       - {name: A, value: 1}
+  - items:
+      - {name: B, value: 2}
 `);
-		expect(block?.querySelector(".kf-section-gap") ?? null).toBeNull();
+		if (!block) throw new Error("block not rendered");
+		const wrappers = Array.from(block.querySelectorAll<HTMLElement>(".kf-section"));
+		expect(wrappers[0]?.querySelector(".kf-section-gap") ?? null).toBeNull();
+		expect(wrappers[1]?.querySelector(".kf-section-gap") ?? null).not.toBeNull();
 	});
 });
 
-describe.skip("finding 14: copy of an id item without a value", () => {
+describe("finding 14: copy of an id item without a value", () => {
 	it("does not copy 'undefined'", async () => {
 		const block = render(`unit: g
 sections:
@@ -585,10 +592,11 @@ sections:
 		if (!block) throw new Error("block not rendered");
 		const copied = await copyRecipe(block);
 		expect(copied).not.toContain("undefined");
+		expect(copied).toContain("A: **— g**");
 	});
 });
 
-describe.skip("finding 15: number input attributes", () => {
+describe("finding 15: number input attributes", () => {
 	it("sets step=any and an accessible name", () => {
 		const block = render(`unit: g
 sections:
@@ -603,7 +611,7 @@ sections:
 	});
 });
 
-describe.skip("finding 16: docs/config", () => {
+describe("finding 16: docs/config", () => {
 	const read = (name: string) => readFileSync(`${globalThis.process.cwd()}/${name}`, "utf8");
 
 	it("does not claim 139 tests in README.md", () => {

@@ -2,9 +2,26 @@ import jsep from "jsep";
 
 export type Vars = Record<string, number>;
 
+// Move the decimal point without multiplying: `1.005 * 100` is
+// 100.49999999999999 in binary floating point, while `1.005e2` is exactly
+// 100.5. `toExponential()` gives one normalized mantissa and exponent, so the
+// shift also works for very large and very small values.
+function shiftDecimal(value: number, decimals: number): number {
+	const [mantissa, exponent] = value.toExponential().split("e");
+	return Number(`${mantissa}e${Number(exponent) + decimals}`);
+}
+
 export function round(value: number, decimals: number): number {
-	const factor = 10 ** decimals;
-	return Math.round(value * factor) / factor;
+	if (!Number.isFinite(value))
+		return value;
+
+	const rounded = Math.round(shiftDecimal(value, decimals));
+	// `Math.round` uses JS semantics (half toward +Infinity), including its
+	// negative-zero result for values such as -0.5. Decimal shifting loses the
+	// sign of -0, so restore it explicitly.
+	if (rounded === 0)
+		return value < 0 || Object.is(value, -0) ? -0 : 0;
+	return shiftDecimal(rounded, -decimals);
 }
 
 // Round to the nearest multiple of `step` (e.g. eggs to whole units, coarse
@@ -40,6 +57,24 @@ export function evaluate(node: jsep.Expression, vars: Vars): number {
 			}
 
 			return value;
+		}
+
+		case "UnaryExpression": {
+			const unary = node as jsep.UnaryExpression;
+			if (!unary.prefix)
+				throw new Error(`Unsupported unary operator: ${unary.operator}`);
+
+			const argument = evaluate(unary.argument, vars);
+			switch (unary.operator) {
+				case "-":
+					return -argument;
+
+				case "+":
+					return +argument;
+
+				default:
+					throw new Error(`Unsupported unary operator: ${unary.operator}`);
+			}
 		}
 
 		case "BinaryExpression": {

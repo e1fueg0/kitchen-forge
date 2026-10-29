@@ -394,12 +394,24 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 				const input = new TextComponent(bEl);
 				input.inputEl.type = "number";
 				input.inputEl.addClass("kf-input");
-				input.setValue(`${(item.value)}`);
+				// Any decimal value is valid; the browser's default step of 1
+				// would flag amounts such as 0.5 as invalid.
+				input.inputEl.setAttribute("step", "any");
+				input.inputEl.setAttribute("aria-label", `Amount for ${item.name}`);
+				input.setValue(item.value != null ? `${item.value}` : "");
 				input.onChange(value => {
 					try {
-						const nValue = Number(value);
-						vars[id] = nValue;
-						item.value = nValue;
+						const nValue = parseNumericValue(value);
+						if (nValue == null) {
+							// An empty (or otherwise invalid) input has no
+							// value at all; treating it as 0 would silently
+							// produce wrong formula results.
+							delete vars[id];
+							item.value = undefined;
+						} else {
+							vars[id] = nValue;
+							item.value = nValue;
+						}
 						setRuntimeError(null);
 						recalcCalcBindings(calcBindings, vars, decimals);
 					} catch (e) {
@@ -413,13 +425,16 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 	};
 
 	const renderSection = (section: Section) => {
-		const hasContentBefore = blockEl.childElementCount > 0;
+		// The toolbar is always the first child of the block, so it cannot be
+		// used to decide whether a section is the first one.
+		const hasContentBefore = renderedSections.length > 0;
 		const wrapper = blockEl.createDiv({cls: "kf-section"});
 		wrapperBySection.set(section, wrapper);
 		renderedSections.push(section);
 
-		if (section.name)
-			wrapper.createEl('h3', {text: section.name});
+		const title = typeof section.name === "string" ? section.name.trim() : "";
+		if (title.length > 0)
+			wrapper.createEl('h3', {text: title});
 		else if (hasContentBefore)
 			wrapper.createEl('p', {cls: 'kf-section-gap'});
 

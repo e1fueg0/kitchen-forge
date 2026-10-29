@@ -30,6 +30,11 @@ describe("round", () => {
 		expect(round(0, 2)).toBe(0);
 	});
 
+	it("rounds values with binary floating-point artefacts", () => {
+		expect(round(1.005, 2)).toBe(1.01);
+		expect(round(8.575, 2)).toBe(8.58);
+	});
+
 	it("handles negative decimals (rounds to tens, hundreds, ...)", () => {
 		expect(round(1234, -1)).toBe(1230);
 		expect(round(1250, -2)).toBe(1300);
@@ -167,11 +172,19 @@ describe("evaluate", () => {
 		});
 	});
 
-	describe("unsupported node types", () => {
-		it("throws on a unary expression (e.g. -5)", () => {
-			expect(() => evaluate(parse("-5"), {})).toThrow("Unsupported node type: UnaryExpression");
+	describe("unary expressions", () => {
+		it("evaluates unary minus and plus", () => {
+			expect(evaluate(parse("-5"), {})).toBe(-5);
+			expect(evaluate(parse("+5"), {})).toBe(5);
+			expect(evaluate(parse("-(2 + 3)"), {})).toBe(-5);
 		});
 
+		it("throws on an unsupported unary operator (e.g. ~)", () => {
+			expect(() => evaluate(parse("~5"), {})).toThrow(/Unsupported unary operator/);
+		});
+	});
+
+	describe("unsupported node types", () => {
 		it("throws on a call expression", () => {
 			expect(() => evaluate(parse("foo()"), {})).toThrow(/Unsupported node type/);
 		});

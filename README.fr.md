@@ -291,7 +291,7 @@ Téléchargez `main.js`, `manifest.json` et `styles.css` depuis la [dernière ve
 ```sh
 npm install
 npm run dev      # esbuild en mode watch
-npm test         # vitest, 139 tests
+npm test         # vitest, 192 tests
 npm run lint
 npm run build    # vérification TypeScript + bundle de production
 ```

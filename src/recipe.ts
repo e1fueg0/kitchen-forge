@@ -86,7 +86,7 @@ export function variantName(name: unknown, index: number): string {
 export function sectionDisplayName(name: unknown, choice?: unknown): string {
 	const group = normalizedText(choice);
 	if (group.length === 0)
-		return typeof name === "string" ? name : "";
+		return normalizedText(name);
 	const variant = normalizedText(name);
 	return variant.length > 0 ? `${group} → ${variant}` : group;
 }
@@ -183,7 +183,14 @@ export function formatSectionsToMarkdown(sections: Section[]): string {
 		}
 		let no = 1;
 		for (const item of section.items) {
-			lines.push(` ${no++}. ${item.name}: **${item.value} ${item.unit}**`);
+			// An id item can be empty until the user types a value. Copying
+			// "undefined" (or "NaN") into the recipe would be misleading.
+			const value = typeof item.value === "number" && Number.isFinite(item.value)
+				? `${item.value}`
+				: "—";
+			const unit = typeof item.unit === "string" ? item.unit.trim() : "";
+			const amount = unit.length > 0 ? `${value} ${unit}` : value;
+			lines.push(` ${no++}. ${item.name}: **${amount}**`);
 		}
 		lines.push("");
 	}
@@ -216,6 +223,14 @@ export function recalcCalcBindings(bindings: CalcBinding[], vars: Vars, decimals
 			binding.el.setText(`${calculated}`);
 			binding.item.value = calculated;
 		} catch (e) {
+			// Do not leave a stale result on screen when its formula can no
+			// longer be evaluated (for example, an input was cleared).
+			try {
+				binding.el.setText("");
+				binding.item.value = undefined;
+			} catch {
+				// Cleanup is best-effort; report the evaluation error instead.
+			}
 			if (!hasError) {
 				firstError = e;
 				hasError = true;
