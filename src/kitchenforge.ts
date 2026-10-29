@@ -8,6 +8,7 @@ import {
 	findDuplicateId,
 	formatSectionsToMarkdown,
 	groupSections,
+	isValidVariableName,
 	MultBinding,
 	parseNumericValue,
 	prefillVars,
@@ -119,6 +120,37 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 				reportError(el, `Item ${itemLabel} in section ${label} must be a mapping`);
 				return;
 			}
+			if (typeof itemName !== "string" || itemName.trim().length === 0) {
+				reportError(el, `Item ${itemLabel} in section ${label} must have a non-empty string 'name'`);
+				return;
+			}
+
+			const rawUnit = (item as {unit?: unknown}).unit;
+			if (rawUnit != null && typeof rawUnit !== "string") {
+				reportError(el, `Item ${itemLabel} in section ${label} must have a string 'unit'`);
+				return;
+			}
+
+			const rawCalc = (item as {calc?: unknown}).calc;
+			if (rawCalc != null && typeof rawCalc !== "string") {
+				reportError(el, `Item ${itemLabel} in section ${label} must have a string 'calc'`);
+				return;
+			}
+			if (typeof rawCalc === "string") {
+				const calc = rawCalc.trim();
+				(item as {calc?: string}).calc = calc.length > 0 ? calc : undefined;
+			}
+
+			const rawRound = (item as {round?: unknown}).round;
+			if (rawRound != null) {
+				const roundStep = parseNumericValue(rawRound);
+				if (roundStep == null) {
+					reportError(el, `Item ${itemLabel} in section ${label} must have a numeric 'round'`);
+					return;
+				}
+				(item as {round?: number}).round = roundStep;
+			}
+
 			const itemId = (item as {id?: unknown}).id;
 			if (itemId != null && typeof itemId !== "string") {
 				reportError(el, `Item ${itemLabel} in section ${label} must have a string 'id'`);
@@ -126,8 +158,16 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 			}
 			if (typeof itemId === "string") {
 				const id = itemId.trim();
+				if (id.length > 0 && !isValidVariableName(id)) {
+					reportError(
+						el,
+						`Item ${itemLabel} in section ${label} has an invalid 'id' '${id}': use a valid formula variable name`,
+					);
+					return;
+				}
 				(item as {id?: string}).id = id.length > 0 ? id : undefined;
 			}
+
 			const rawValue = (item as {value?: unknown}).value;
 			if (rawValue != null) {
 				const value = parseNumericValue(rawValue);
@@ -136,6 +176,13 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 					return;
 				}
 				(item as {value?: number}).value = value;
+			}
+
+			const normalizedId = (item as {id?: string}).id;
+			const normalizedCalc = (item as {calc?: string}).calc;
+			if (normalizedId != null && normalizedCalc != null) {
+				reportError(el, `Item ${itemLabel} in section ${label} cannot have both 'id' and 'calc'`);
+				return;
 			}
 		}
 	}
@@ -161,12 +208,27 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 	}
 	const scales = normalizedScales;
 
-	if (recipe.decimals == null)
-		recipe.decimals = 2;
-	const decimals = recipe.decimals;
-	if (recipe.unit == null)
-		recipe.unit = "g";
-	const unit = recipe.unit;
+	let decimals = recipe.decimals;
+	if (decimals == null) {
+		decimals = 2;
+	} else {
+		const parsed = parseNumericValue(decimals);
+		if (parsed == null || !Number.isInteger(parsed) || parsed < 0) {
+			reportError(el, "Recipe 'decimals' must be a non-negative integer");
+			return;
+		}
+		decimals = parsed;
+	}
+	recipe.decimals = decimals;
+
+	let unit = recipe.unit;
+	if (unit == null) {
+		unit = "g";
+	} else if (typeof unit !== "string") {
+		reportError(el, "Recipe 'unit' must be a string");
+		return;
+	}
+	recipe.unit = unit;
 
 	const vars: Vars = {};
 	const calcBindings: CalcBinding[] = [];
@@ -391,10 +453,12 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		);
 	}
 
-	// Apply initial scale (first in list) or mult=1 if no scales.
-	// This runs after multBindings are populated from section rendering.
+	// Apply the initial scale only when scales are configured. Without scales,
+	// authored values must stay exactly as written instead of being rounded to
+	// the recipe-wide `decimals`.
 	// Hidden variants are scaled too, so switching variants keeps the chosen scale.
-	applyScale(multBindings, initialScaleMult, decimals);
+	if (scales.length > 0)
+		applyScale(multBindings, initialScaleMult, decimals);
 
 	// Evaluate all calc bindings once everything is wired up.
 	try {

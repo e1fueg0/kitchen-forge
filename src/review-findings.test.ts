@@ -364,7 +364,7 @@ sections:
 	});
 });
 
-describe.skip("finding 5: unconditional initial applyScale", () => {
+describe("finding 5: unconditional initial applyScale", () => {
 	it("does not round a small authored value down to zero when there are no scales", () => {
 		const block = render(`unit: g
 decimals: 2
@@ -392,11 +392,12 @@ sections:
 	});
 });
 
-describe.skip("finding 6: ids are not validated as jsep identifiers", () => {
+describe("finding 6: ids are not validated as jsep identifiers", () => {
 	it.each([
 		["hyphen", "olive-oil", "olive-oil * 2", "20"],
 		["boolean literal", '"true"', "true * 2", "20"],
 		["space", '"a b"', "a b", "10"],
+		["prototype key", '"__proto__"', "__proto__ * 2", "20"],
 	] as const)("handles %s id", (_label, id, calc, expected) => {
 		const block = render(`unit: g
 sections:
@@ -426,7 +427,7 @@ sections:
 	});
 });
 
-describe.skip("finding 7: id + calc on one item", () => {
+describe("finding 7: id + calc on one item", () => {
 	it("rejects the combination or keeps vars in sync", () => {
 		const block = render(`unit: g
 sections:
@@ -444,18 +445,19 @@ sections:
 	});
 });
 
-describe.skip("finding 8: no runtime validation of numeric/string fields", () => {
-	it("does not render NaN for a non-numeric round", () => {
+describe("finding 8: no runtime validation of numeric/string fields", () => {
+	it("rejects a non-numeric round", () => {
 		const block = render(`unit: g
 sections:
   - name: S
     items:
       - {name: A, value: 100, round: abc}
 `);
-		expect(block?.textContent ?? "").not.toContain("NaN");
+		expect(block).toBeNull();
+		expect(errorEl()?.textContent ?? "").toMatch(/round/i);
 	});
 
-	it("does not render NaN for non-numeric decimals", () => {
+	it("rejects non-numeric decimals", () => {
 		const block = render(`unit: g
 decimals: abc
 sections:
@@ -463,20 +465,22 @@ sections:
     items:
       - {name: A, value: 100}
 `);
-		expect(block?.textContent ?? "").not.toContain("NaN");
+		expect(block).toBeNull();
+		expect(errorEl()?.textContent ?? "").toMatch(/decimals/i);
 	});
 
-	it("does not render NaN for an object value", () => {
+	it("rejects an object value", () => {
 		const block = render(`unit: g
 sections:
   - name: S
     items:
       - {name: A, value: {}}
 `);
-		expect(block?.textContent ?? "").not.toContain("NaN");
+		expect(block).toBeNull();
+		expect(errorEl()?.textContent ?? "").toMatch(/value/i);
 	});
 
-	it("does not render [object Object] for object name/unit", () => {
+	it("rejects object name/unit", () => {
 		const block = render(`unit: {}
 sections:
   - name: S
@@ -484,20 +488,19 @@ sections:
       - name: {}
         value: 1
 `);
-		expect(block?.textContent ?? "").not.toContain("[object Object]");
+		expect(block).toBeNull();
+		expect(errorEl()?.textContent ?? "").toMatch(/name|unit/i);
 	});
 
-	it("does not crash on a non-string calc and reports an error", () => {
+	it("rejects a non-string calc with a clear error", () => {
 		const block = render(`unit: g
 sections:
   - name: S
     items:
       - {name: A, calc: 123}
 `);
-		expect(block).not.toBeNull();
-		// The message is generic ("Unsupported node type: Compound"), but the
-		// block is not broken and the user does see an error.
-		expect(errorEl()).not.toBeNull();
+		expect(block).toBeNull();
+		expect(errorEl()?.textContent ?? "").toMatch(/calc/i);
 	});
 });
 

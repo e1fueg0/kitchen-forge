@@ -14,8 +14,13 @@ export function round(value: number, decimals: number): number {
 export function roundToStep(value: number, step: number, decimals: number): number {
 	if (step <= 0) return round(value, decimals);
 	const snapped = Math.round(value / step) * step;
-	const result = snapped === 0 && value !== 0 ? Math.sign(value) * step : snapped;
-	return round(result, decimals);
+	const floored = snapped === 0 && value !== 0 ? Math.sign(value) * step : snapped;
+	const result = round(floored, decimals);
+	// Rounding to `decimals` can turn a small non-zero step (for example 0.1
+	// with decimals=0) back into zero. Keep at least one step in that case.
+	if (result === 0 && value !== 0)
+		return Math.sign(value) * step;
+	return result;
 }
 
 export function evaluate(node: jsep.Expression, vars: Vars): number {
@@ -28,7 +33,9 @@ export function evaluate(node: jsep.Expression, vars: Vars): number {
 			const name = (node as jsep.Identifier).name;
 			const value = vars[name];
 
-			if (value == null) {
+			// Only own properties are variables. Otherwise names such as
+			// "constructor" or "toString" would resolve through Object.prototype.
+			if (!Object.prototype.hasOwnProperty.call(vars, name) || value == null) {
 				throw new Error(`Unknown variable: ${name}`);
 			}
 

@@ -52,6 +52,22 @@ export function parseNumericValue(value: unknown): number | null {
 	return null;
 }
 
+// IDs become jsep identifiers in formulas. Requiring the parsed expression to
+// be exactly one Identifier rejects "olive-oil" (parsed as subtraction),
+// "true" (parsed as a literal), "a b" (parsed as a compound), etc.
+export function isValidVariableName(name: string): boolean {
+	// `vars["__proto__"] = value` would change the object's prototype instead
+	// of creating a variable, so this name can never work safely.
+	if (name === "__proto__")
+		return false;
+	try {
+		const node = jsep(name);
+		return node.type === "Identifier" && (node as jsep.Identifier).name === name;
+	} catch {
+		return false;
+	}
+}
+
 function choiceTitle(section: Section): string | null {
 	const title = normalizedText(section.choice);
 	return title.length > 0 ? title : null;
