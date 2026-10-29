@@ -114,7 +114,7 @@ sections:
 
 ## Scaling mode: fixed lists, one click
 
-Provide a `scales` list and plain ingredients with fixed `value`s. Each scale has a `name` and a multiplier `mult`. Clicking a button multiplies every amount by that multiplier.
+Provide a `scales` list and plain ingredients with fixed `value`s. Each scale has a multiplier `mult` and an optional `name`. Clicking a button multiplies every amount by that multiplier.
 
 Every click is applied to the **original** amounts, not to the values currently on screen. Switching between scales is non-destructive: `Full → Half → Full` restores the original recipe exactly.
 
@@ -158,11 +158,33 @@ sections:
 ```
 ````
 
+Names are optional. If you omit a scale name, kitchenForge generates one from `mult`: `💯 1:1` for `mult: 1`, and `×2`, `×0.5`, `×1.5` for other multipliers.
+
+```yaml
+scales:
+  - name: Half
+    mult: .5
+  - mult: 2
+```
+
+This renders as `✅ 💯 1:1`, `🎚 Half`, and `🎚 ×2`.
+
 ### Which scale is selected first?
 
-- The **first scale in the list** is selected when the block renders, regardless of its `mult`. If the first scale is `Half`, the recipe opens halved.
-- If **no** scale has `mult: 1`, kitchenForge appends an implicit `💯 1:1` button at the **end** of the row. The first user-defined scale is still selected initially.
-- If a scale already has `mult: 1`, no implicit button is added.
+- The **first scale in the list** is selected when the block renders, regardless of its `mult`. Order is the only default rule.
+- If **no** scale has `mult: 1`, kitchenForge prepends an implicit `💯 1:1` button. It becomes the first button, so the recipe opens at the original amounts.
+- If a scale already has `mult: 1`, no implicit button is added and your order is kept.
+
+To make another scale the default while keeping 1:1 available, list that scale first and add an explicit `mult: 1` entry after it:
+
+```yaml
+scales:
+  - name: Double
+    mult: 2
+  - mult: 1
+```
+
+This renders as `✅ Double` and `🎚 💯 1:1`.
 
 The `📏` label prefixes the button row. The selected button starts with `✅`; the others start with `🎚`.
 
@@ -234,7 +256,7 @@ A non-zero amount never becomes `0`: it stays at least one step in the same dire
 |---|---|---|---|
 | `unit` | top level | No | Default unit for items that don't override it. Defaults to `g`. Display-only: kitchenForge does **not** convert units. |
 | `decimals` | top level | No | Decimal places for computed and scaled amounts. Defaults to `2`. |
-| `scales[]` | top level | No | List of `{name, mult}`. Mutually exclusive with `id`/`calc` items. |
+| `scales[]` | top level | No | List of `{name?, mult}`. A missing `name` is generated from `mult`. Mutually exclusive with `id`/`calc` items. |
 | `sections[]` | top level | **Yes** | List of `{name?, choice?, items[]}`. A section without a name renders as a visual gap (except at the top). |
 | `choice` | section | No | Group label for variant sections. All sections with the same `choice` form one variant switcher, placed at the first variant's position; the first variant is shown initially. Copied and show-all headings read `Group → Variant`. |
 | `name` | item | **Yes** | Ingredient name. |
@@ -264,6 +286,7 @@ This is handy for pasting into a note, a shopping list, or a message while cooki
 | `Unknown variable: …` | `calc` references an id that does not exist or has no `value` | Add the id with a numeric value, or fix the spelling. |
 | `Duplicate id '…'` | The same id is used by more than one item | Give each item a unique id. |
 | `Cannot have scales with ids/formulas specified` | Mixed modes | Remove `scales`, or remove every `id`/`calc`. |
+| `Recipe 'scales' entry #… 'name' must be a string` | `name` is a number or boolean | Quote it, or omit it to generate a label from `mult`. |
 | `Unsupported operator` | Used `%`, `^`, etc. | Use `+ - * / @`. |
 | `Error parsing recipe:` | Invalid YAML | Check indentation, colons and quotes. |
 | A value shows `Infinity` or `NaN` | Division by zero or a non-numeric input | Check the input values and the expression. |
@@ -289,7 +312,7 @@ Download `main.js`, `manifest.json` and `styles.css` from the [latest release](h
 ```sh
 npm install
 npm run dev      # esbuild in watch mode
-npm test         # vitest, 198 tests
+npm test         # vitest, 203 tests
 npm run lint
 npm run build    # type-check + production bundle
 ```

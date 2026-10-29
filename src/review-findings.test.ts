@@ -193,10 +193,26 @@ sections:
 		}
 	});
 
-	it("rejects a scale without a name", () => {
+	it("auto-names a scale without a name", () => {
 		const block = render(`unit: g
 scales:
   - mult: 1
+sections:
+  - name: S
+    items:
+      - {name: A, value: 100}
+`);
+		expect(block).not.toBeNull();
+		const buttons = block!.querySelectorAll(".kf-scale-block button");
+		expect(buttons.length).toBe(1);
+		expect(buttons[0]!.textContent).toContain("1:1");
+	});
+
+	it("rejects a non-string scale name", () => {
+		const block = render(`unit: g
+scales:
+  - name: 2
+    mult: 2
 sections:
   - name: S
     items:

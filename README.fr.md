@@ -116,7 +116,7 @@ sections:
 
 ## Mode mise à l'échelle : des listes fixes, en un clic
 
-Fournissez une liste `scales` et des ingrédients simples avec des `value` fixes. Chaque échelle a un `name` et un multiplicateur `mult`. Cliquer sur un bouton multiplie toutes les quantités par ce multiplicateur.
+Fournissez une liste `scales` et des ingrédients simples avec des `value` fixes. Chaque échelle a un multiplicateur `mult` et un `name` facultatif. Cliquer sur un bouton multiplie toutes les quantités par ce multiplicateur.
 
 Chaque clic s'applique aux quantités **d'origine**, pas aux valeurs affichées. Passer d'une échelle à l'autre n'est donc pas destructif : `Complet → Moitié → Complet` restaure exactement la recette d'origine.
 
@@ -160,11 +160,33 @@ sections:
 ```
 ````
 
+Les noms sont facultatifs. Si vous omettez le nom d'une échelle, kitchenForge en génère un à partir de `mult` : `💯 1:1` pour `mult: 1`, et `×2`, `×0.5`, `×1.5` pour les autres multiplicateurs.
+
+```yaml
+scales:
+  - name: Moitié
+    mult: .5
+  - mult: 2
+```
+
+Cela affiche `✅ 💯 1:1`, `🎚 Moitié` et `🎚 ×2`.
+
 ### Quelle échelle est sélectionnée au départ ?
 
-- La **première échelle de la liste** est sélectionnée à l'affichage, quel que soit son `mult`. Si la première échelle est `Moitié`, la recette s'ouvre déjà divisée par deux.
-- Si **aucune** échelle n'a `mult: 1`, kitchenForge ajoute un bouton implicite `💯 1:1` à la **fin** de la rangée. La première échelle définie par l'utilisateur reste sélectionnée au départ.
-- Si une échelle a déjà `mult: 1`, aucun bouton implicite n'est ajouté.
+- La **première échelle de la liste** est sélectionnée à l'affichage, quel que soit son `mult`. L'ordre est la seule règle de sélection.
+- Si **aucune** échelle n'a `mult: 1`, kitchenForge ajoute un bouton implicite `💯 1:1` au **début** de la rangée. Il devient le premier bouton, donc la recette s'ouvre aux quantités d'origine.
+- Si une échelle a déjà `mult: 1`, aucun bouton implicite n'est ajouté et votre ordre est conservé.
+
+Pour choisir une autre échelle par défaut tout en gardant 1:1 disponible, placez-la en premier et ajoutez une entrée `mult: 1` après :
+
+```yaml
+scales:
+  - name: Double
+    mult: 2
+  - mult: 1
+```
+
+Cela affiche `✅ Double` et `🎚 💯 1:1`.
 
 Le libellé `📏` précède la rangée de boutons. Le bouton sélectionné commence par `✅`, les autres par `🎚`.
 
@@ -236,7 +258,7 @@ Une quantité non nulle ne devient jamais `0` : elle reste au minimum à un pas,
 |---|---|---|---|
 | `unit` | niveau racine | Non | Unité par défaut des ingrédients qui n'en ont pas. `g` par défaut. Affichage uniquement : kitchenForge ne **convertit pas** les unités. |
 | `decimals` | niveau racine | Non | Nombre de décimales pour les valeurs calculées et mises à l'échelle. `2` par défaut. |
-| `scales[]` | niveau racine | Non | Liste de `{name, mult}`. Incompatible avec les ingrédients `id`/`calc`. |
+| `scales[]` | niveau racine | Non | Liste de `{name?, mult}`. Un `name` absent est généré à partir de `mult`. Incompatible avec les ingrédients `id`/`calc`. |
 | `sections[]` | niveau racine | **Oui** | Liste de `{name?, choice?, items[]}`. Une section sans nom crée un espace visuel (sauf en haut). |
 | `choice` | section | Non | Libellé de groupe pour les variantes. Toutes les sections ayant le même `choice` forment un seul sélecteur de variantes, placé à l'emplacement de la première variante ; la première est affichée au départ. La copie et les sous-titres du mode « tout afficher » utilisent `Groupe → Variante`. |
 | `name` | ingrédient | **Oui** | Nom de l'ingrédient. |
@@ -266,6 +288,7 @@ C'est pratique pour coller la recette dans une note, une liste de courses ou un 
 | `Unknown variable: …` | `calc` référence un id inexistant ou sans `value` | Ajoutez l'id avec une valeur numérique, ou corrigez l'orthographe. |
 | `Duplicate id '…'` | Le même id est utilisé par plusieurs ingrédients | Donnez un id unique à chaque ingrédient. |
 | `Cannot have scales with ids/formulas specified` | Modes mélangés | Supprimez `scales`, ou supprimez tous les `id`/`calc`. |
+| `Recipe 'scales' entry #… 'name' must be a string` | `name` est un nombre ou un booléen | Mettez-le entre guillemets, ou omettez-le pour générer un libellé à partir de `mult`. |
 | `Unsupported operator` | Opérateur `%`, `^`, etc. | Utilisez `+ - * / @`. |
 | `Error parsing recipe:` | YAML invalide | Vérifiez l'indentation, les deux-points et les guillemets. |
 | Une valeur affiche `Infinity` ou `NaN` | Division par zéro ou valeur non numérique | Vérifiez les valeurs saisies et l'expression. |
@@ -291,7 +314,7 @@ Téléchargez `main.js`, `manifest.json` et `styles.css` depuis la [dernière ve
 ```sh
 npm install
 npm run dev      # esbuild en mode watch
-npm test         # vitest, 198 tests
+npm test         # vitest, 203 tests
 npm run lint
 npm run build    # vérification TypeScript + bundle de production
 ```

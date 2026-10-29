@@ -22,6 +22,12 @@ const SCALE_PREFIX = "🎚 ️";
 const SELECTED_PREFIX = "✅ ";
 const ORIGINAL_SCALE_NAME = "💯 1:1";
 
+// A scale name is optional. A nameless scale gets a readable label from its
+// multiplier so the buttons never show an empty name.
+function defaultScaleName(mult: number): string {
+	return mult === 1 ? ORIGINAL_SCALE_NAME : `×${mult}`;
+}
+
 const HIDDEN_CLASS = "kf-hidden";
 
 function setVisible(el: HTMLElement, visible: boolean): void {
@@ -53,15 +59,21 @@ function normalizeScales(value: unknown): Scale[] | string {
 		if (entry == null || typeof entry !== "object" || Array.isArray(entry))
 			return `${label} must be a mapping`;
 
-		const name = (entry as {name?: unknown}).name;
-		if (typeof name !== "string" || name.trim().length === 0)
-			return `${label} must have a non-empty 'name'`;
+		const rawName = (entry as {name?: unknown}).name;
+		// Omitted, null and blank names are allowed and get a generated label.
+		// Other types are still rejected: `name: 2` is more likely a typo than
+		// an intentional scale called "2".
+		if (rawName != null && typeof rawName !== "string")
+			return `${label} 'name' must be a string`;
+		const name = typeof rawName === "string" ? rawName.trim() : "";
 
 		const mult = parseNumericValue((entry as {mult?: unknown}).mult);
-		if (mult == null || mult <= 0)
-			return `${label} '${name.trim()}' must have a positive numeric 'mult'`;
+		if (mult == null || mult <= 0) {
+			const suffix = name.length > 0 ? ` '${name}'` : "";
+			return `${label}${suffix} must have a positive numeric 'mult'`;
+		}
 
-		scales.push({name: name.trim(), mult});
+		scales.push({name: name.length > 0 ? name : defaultScaleName(mult), mult});
 	}
 	return scales;
 }
@@ -338,11 +350,13 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 	let initialScaleMult = 1;
 
 	if (scales.length > 0) {
-		// If no user scale has mult=1, append implicit 1:1 scale at the END.
-		// The first scale in the final list (first user-defined) becomes the initially selected one.
+		// If no user scale has mult=1, prepend the implicit 1:1 scale.
+		// The first scale in the final list is always the initially selected
+		// one, so the original recipe opens by default. An explicit mult=1
+		// scale keeps the user's order and therefore their chosen default.
 		const finalScales = scales.some(s => s.mult === 1)
 			? scales
-			: [...scales, {name: ORIGINAL_SCALE_NAME, mult: 1}];
+			: [{name: ORIGINAL_SCALE_NAME, mult: 1}, ...scales];
 
 		const initialScale = finalScales[0]!;
 		initialScaleMult = initialScale.mult;

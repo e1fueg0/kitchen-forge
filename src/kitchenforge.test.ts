@@ -311,7 +311,7 @@ sections:
 		expect(getItemValueText(items[0])).toBe("50"); // 100 * 0.5
 	});
 
-	it("adds an implicit 1:1 scale at the end when no scale has mult=1", () => {
+	it("prepends an implicit 1:1 scale and selects it when no scale has mult=1", () => {
 		const source = `
 unit: г
 scales:
@@ -327,16 +327,16 @@ sections:
 `;
 		const block = render(source);
 		const buttons = getScaleButtons(block!);
-		// The 💯 1:1 button is appended at the end; first user scale (Половина) is selected
+		// The 💯 1:1 button is prepended and selected, so the recipe opens original.
 		expect(buttons.length).toBe(3);
 		expect(buttons[0]!.textContent?.startsWith("✅")).toBe(true);
-		expect(buttons[0]!.textContent).toContain("Половина");
+		expect(buttons[0]!.textContent).toContain("1:1");
 		expect(buttons[1]!.textContent?.startsWith("🎚")).toBe(true);
-		expect(buttons[1]!.textContent).toContain("Треть");
-		expect(buttons[2]!.textContent).toContain("1:1");
+		expect(buttons[1]!.textContent).toContain("Половина");
 		expect(buttons[2]!.textContent?.startsWith("🎚")).toBe(true);
-		// Values are halved because first scale (Половина, mult=0.5) is applied
-		expect(getItemValueText(getSectionItems(block!, 0)[0])).toBe("50");
+		expect(buttons[2]!.textContent).toContain("Треть");
+		// Values stay original because the implicit 1:1 scale is applied.
+		expect(getItemValueText(getSectionItems(block!, 0)[0])).toBe("100");
 	});
 
 	it("does not add an implicit 1:1 scale when a user scale already has mult=1", () => {
@@ -344,6 +344,90 @@ sections:
 		const buttons = getScaleButtons(block!);
 		expect(buttons.length).toBe(3);
 		expect(buttons.some(b => b.textContent?.includes("1:1"))).toBe(false);
+	});
+
+	it("generates 💯 1:1 for a nameless mult=1 scale", () => {
+		const source = `
+unit: г
+scales:
+  - mult: 1
+sections:
+  - name: S
+    items:
+      - name: A
+        value: 100
+`;
+		const block = render(source);
+		const buttons = getScaleButtons(block!);
+		expect(buttons.length).toBe(1);
+		expect(buttons[0]!.textContent?.startsWith("✅")).toBe(true);
+		expect(buttons[0]!.textContent).toContain("💯 1:1");
+	});
+
+	it("generates multiplier labels for nameless scales", () => {
+		const source = `
+unit: г
+scales:
+  - mult: .5
+  - mult: 2
+sections:
+  - name: S
+    items:
+      - name: A
+        value: 100
+`;
+		const block = render(source);
+		const buttons = getScaleButtons(block!);
+		expect(buttons.length).toBe(3);
+		expect(buttons[0]!.textContent).toContain("💯 1:1");
+		expect(buttons[1]!.textContent).toContain("×0.5");
+		expect(buttons[2]!.textContent).toContain("×2");
+	});
+
+	it("treats blank and null scale names as omitted", () => {
+		const source = `
+unit: г
+scales:
+  - name: ""
+    mult: .5
+  - name: "   "
+    mult: 2
+  - name: null
+    mult: 1.5
+sections:
+  - name: S
+    items:
+      - name: A
+        value: 100
+`;
+		const block = render(source);
+		const buttons = getScaleButtons(block!);
+		expect(buttons.length).toBe(4);
+		expect(buttons[1]!.textContent).toContain("×0.5");
+		expect(buttons[2]!.textContent).toContain("×2");
+		expect(buttons[3]!.textContent).toContain("×1.5");
+	});
+
+	it("uses the first scale as default and keeps an explicit 1:1 in place", () => {
+		const source = `
+unit: г
+scales:
+  - mult: 2
+  - mult: 1
+sections:
+  - name: S
+    items:
+      - name: A
+        value: 100
+`;
+		const block = render(source);
+		const buttons = getScaleButtons(block!);
+		expect(buttons.length).toBe(2);
+		expect(buttons[0]!.textContent?.startsWith("✅")).toBe(true);
+		expect(buttons[0]!.textContent).toContain("×2");
+		expect(buttons[1]!.textContent?.startsWith("🎚")).toBe(true);
+		expect(buttons[1]!.textContent).toContain("💯 1:1");
+		expect(getItemValueText(getSectionItems(block!, 0)[0])).toBe("200");
 	});
 
 	it("halves all values when the 'Половина' scale is clicked", () => {
@@ -448,10 +532,11 @@ sections:
 `;
 
 describe("workflow 2b: per-item round", () => {
-	it("snaps initial values to nice numbers and stays exact for unrounded items", () => {
+	it("snaps values to nice numbers and stays exact for unrounded items", () => {
 		const block = render(roundRecipe);
+		getScaleButtons(block!).find(b => b.textContent?.includes("Половина"))!.click();
 		const filling = getSectionItems(block!, 0);
-		// First scale (Половина, mult=0.5) is applied on initial render
+		// Половина (mult=0.5) is applied after the click
 		expect(getItemValueText(filling[0])).toBe("500");  // фарш: 1000 * 0.5
 		expect(getItemValueText(filling[1])).toBe("75");   // картошка: 150 * 0.5 = 75, rounded to nearest 25 = 75
 		expect(getItemValueText(filling[2])).toBe("1");    // яйцо: 1 * 0.5 = 0.5 → floored to 1

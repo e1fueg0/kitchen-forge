@@ -142,6 +142,7 @@ export function groupSections(sections: Section[]): SectionGroup[] {
 }
 
 export type Scale = {
+	/** Display label. A missing YAML name is filled in during normalization. */
 	name: string;
 	mult: number;
 };
