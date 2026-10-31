@@ -209,7 +209,12 @@ function roundForItem(value: number, item: Ingredient, decimals: number): number
 
 export function applyScale(bindings: MultBinding[], mult: number, decimals: number): void {
 	for (const binding of bindings) {
-		const calculated = roundForItem(binding.origValue * mult, binding.item, decimals);
+		// A 1:1 scale is a reset, not a computation: restore the authored
+		// amount exactly, including precision beyond `decimals`, and ignore
+		// any per-item `round` step.
+		const calculated = mult === 1
+			? binding.origValue
+			: roundForItem(binding.origValue * mult, binding.item, decimals);
 		binding.el.setText(formatAmount(calculated));
 		binding.item.value = calculated;
 	}

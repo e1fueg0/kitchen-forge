@@ -116,7 +116,7 @@ sections:
 
 Provide a `scales` list and plain ingredients with fixed `value`s. Each scale has a multiplier `mult` and an optional `name`. Clicking a button multiplies every amount by that multiplier.
 
-Every click is applied to the **original** amounts, not to the values currently on screen, so switching scales never compounds rounding. When `scales` is configured, the first scale is applied on render, so amounts are rounded to `decimals` (or the item's `round`) immediately and after every click, including 1:1: for example, `12.345` with `decimals: 2` shows `12.35`. Without `scales`, authored `value`s are shown exactly as written. Choose a high enough `decimals` value to keep the precision you need.
+Every click is applied to the **original** amounts, not to the values currently on screen, so switching scales never compounds rounding. When `scales` is configured, the first scale is applied on render. A 1:1 scale (explicit or implicit) restores the authored values exactly, including precision beyond `decimals`; any other multiplier rounds to `decimals` (or the item's `round`): for example, `12.345` with `decimals: 2` stays `12.345` on 1:1, but becomes `6.17` on a ×0.5 scale. Without `scales`, authored `value`s are shown exactly as written. Choose a high enough `decimals` value to keep the precision you need.
 
 ````markdown
 ```kitchenforge

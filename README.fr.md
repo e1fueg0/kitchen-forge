@@ -118,7 +118,7 @@ sections:
 
 Fournissez une liste `scales` et des ingrédients simples avec des `value` fixes. Chaque échelle a un multiplicateur `mult` et un `name` facultatif. Cliquer sur un bouton multiplie toutes les quantités par ce multiplicateur.
 
-Chaque clic s'applique aux quantités **d'origine**, pas aux valeurs affichées : passer d'une échelle à l'autre ne cumule donc jamais les arrondis. Dès que `scales` est configuré, la première échelle est appliquée au rendu : les quantités sont donc arrondies à `decimals` (ou au `round` de l'ingrédient) immédiatement, puis à chaque clic, y compris sur l'échelle 1:1 : par exemple, `12.345` avec `decimals: 2` affiche `12.35`. Sans `scales`, les `value` d'origine restent affichées telles quelles. Choisissez un `decimals` assez élevé pour conserver la précision nécessaire.
+Chaque clic s'applique aux quantités **d'origine**, pas aux valeurs affichées : passer d'une échelle à l'autre ne cumule donc jamais les arrondis. Dès que `scales` est configuré, la première échelle est appliquée au rendu. Une échelle 1:1 (explicite ou implicite) restaure exactement les quantités d'origine, y compris la précision au-delà de `decimals` ; tout autre multiplicateur arrondit à `decimals` (ou au `round` de l'ingrédient) : par exemple, `12.345` avec `decimals: 2` reste `12.345` sur 1:1, mais devient `6.17` sur une échelle ×0.5. Sans `scales`, les `value` d'origine restent affichées telles quelles. Choisissez un `decimals` assez élevé pour conserver la précision nécessaire.
 
 ````markdown
 ```kitchenforge

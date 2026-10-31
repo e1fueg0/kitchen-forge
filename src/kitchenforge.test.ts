@@ -334,7 +334,7 @@ describe("workflow 2: scales", () => {
 		expect(buttons[2]!.textContent?.startsWith("🎚")).toBe(true);
 	});
 
-	it("rounds authored values on the initial render when scales are configured", () => {
+	it("keeps authored values exact on the initial 1:1 render", () => {
 		const block = render(`
 unit: г
 decimals: 2
@@ -347,7 +347,50 @@ sections:
       - name: A
         value: 12.345
 `);
-		expect(getItemValueText(getSectionItems(block!, 0)[0])).toBe("12.35");
+		expect(getItemValueText(getSectionItems(block!, 0)[0])).toBe("12.345");
+	});
+
+	it("rounds authored values when the initial scale is not 1:1", () => {
+		const block = render(`
+unit: г
+decimals: 2
+scales:
+  - name: Half
+    mult: .5
+  - name: Full
+    mult: 1
+sections:
+  - name: S
+    items:
+      - name: A
+        value: 12.345
+`);
+		expect(getItemValueText(getSectionItems(block!, 0)[0])).toBe("6.17");
+	});
+
+	it("restores the exact authored value when returning to 1:1", () => {
+		const block = render(`
+unit: г
+decimals: 2
+scales:
+  - name: Full
+    mult: 1
+  - name: Half
+    mult: .5
+sections:
+  - name: S
+    items:
+      - name: A
+        value: 12.345
+`);
+		const value = () => getItemValueText(getSectionItems(block!, 0)[0]);
+		expect(value()).toBe("12.345");
+
+		getScaleButtons(block!).find(b => b.textContent?.includes("Half"))!.click();
+		expect(value()).toBe("6.17");
+
+		getScaleButtons(block!).find(b => b.textContent?.includes("Full"))!.click();
+		expect(value()).toBe("12.345");
 	});
 
 	it("exposes the selected scale through aria-pressed", () => {

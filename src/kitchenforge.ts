@@ -534,9 +534,10 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		);
 	}
 
-	// Apply the initial scale only when scales are configured. Without scales,
-	// authored values must stay exactly as written instead of being rounded to
-	// the recipe-wide `decimals`.
+	// Apply the initial scale only when scales are configured. A 1:1 initial
+	// scale restores authored values exactly; any other multiplier rounds to
+	// `decimals`/`round`. Without scales, authored values stay exactly as
+	// written instead of being rounded to the recipe-wide `decimals`.
 	// Hidden variants are scaled too, so switching variants keeps the chosen scale.
 	if (scales.length > 0)
 		applyScale(multBindings, initialScaleMult, decimals);

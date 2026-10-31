@@ -54,6 +54,14 @@ describe("applyScale", () => {
 		expect(a.el.setText).toHaveBeenLastCalledWith("400");
 	});
 
+	it("restores the exact authored value for mult 1, ignoring decimals and round", () => {
+		const a = makeBinding(12.345);
+		a.item.round = 0.1;
+		applyScale([a.binding], 1, 2);
+		expect(a.el.setText).toHaveBeenCalledWith("12.345");
+		expect(a.item.value).toBe(12.345);
+	});
+
 	it("honors the decimals argument", () => {
 		const a = makeBinding(2);
 		applyScale([a.binding], 0.33, 0);
