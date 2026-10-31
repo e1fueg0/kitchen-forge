@@ -118,7 +118,7 @@ sections:
 
 Fournissez une liste `scales` et des ingrédients simples avec des `value` fixes. Chaque échelle a un multiplicateur `mult` et un `name` facultatif. Cliquer sur un bouton multiplie toutes les quantités par ce multiplicateur.
 
-Chaque clic s'applique aux quantités **d'origine**, pas aux valeurs affichées. Passer d'une échelle à l'autre n'est donc pas destructif : `Complet → Moitié → Complet` restaure exactement la recette d'origine.
+Chaque clic s'applique aux quantités **d'origine**, pas aux valeurs affichées : passer d'une échelle à l'autre ne cumule donc jamais les arrondis. Les quantités sont arrondies à `decimals` (ou au `round` de l'ingrédient) à chaque clic, y compris sur l'échelle 1:1 : par exemple, `12.345` avec `decimals: 2` affiche `12.35` après application d'une échelle. Choisissez un `decimals` assez élevé pour conserver la précision nécessaire.
 
 ````markdown
 ```kitchenforge
