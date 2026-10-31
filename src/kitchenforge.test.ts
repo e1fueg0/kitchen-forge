@@ -180,6 +180,23 @@ describe("workflow 1: id + calc", () => {
 		expect(getItemUnit(spices[0])).toBe("г");
 	});
 
+	it("allows an empty item unit to suppress the recipe unit", async () => {
+		const block = render(`
+unit: г
+sections:
+  - name: S
+    items:
+      - name: Salt
+        value: 5
+        unit: ""
+`);
+		const item = getSectionItems(block!, 0)[0]!;
+		expect(getItemUnit(item)).toBe("");
+		const copied = await copyRecipe(block!);
+		expect(copied).toContain("Salt: **5**");
+		expect(copied).not.toContain("5 г");
+	});
+
 	it("trims item names and units in the UI and copied Markdown", async () => {
 		const block = render(`
 unit: г

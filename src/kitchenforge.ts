@@ -442,7 +442,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 			itemEl.createSpan({text: `${item.name}: `});
 			const bEl = itemEl.createEl('b');
 
-			if (!item.unit)
+			if (item.unit == null)
 				item.unit = unit;
 			if (item.calc) {
 				const valueEl = bEl.createSpan({text: ""});
@@ -481,7 +481,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 				});
 			}
 
-			bEl.createSpan({text: ` ${item.unit}`});
+			bEl.createSpan({text: item.unit ? ` ${item.unit}` : ""});
 		}
 	};
 
