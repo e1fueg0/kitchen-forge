@@ -1324,6 +1324,28 @@ sections:
 		}
 	});
 
+	it("keeps formula errors when copying succeeds", async () => {
+		const block = render(`
+unit: г
+sections:
+  - name: Section
+    items:
+      - name: Broken
+        calc: missing * 2
+`);
+		expect(errorEl()!.textContent).toContain("Formula error: Unknown variable: missing");
+
+		const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+		try {
+			block!.querySelector("button")!.click();
+			await new Promise(resolve => setTimeout(resolve, 0));
+			expect(errorEl()!.textContent).toContain("Formula error: Unknown variable: missing");
+			expect(getStatus(block!)!.textContent).toBe("Recipe copied");
+		} finally {
+			writeText.mockRestore();
+		}
+	});
+
 	it("catches errors raised during a scale click and reports them with 'Scale failed:'", () => {
 		const block = render(scaleRecipe);
 		// Break setText on the first value span; applyScale will hit it during the click.

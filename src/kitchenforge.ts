@@ -259,19 +259,28 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 
 	const blockEl = el.createDiv({cls: "kf-block"});
 
-	// Runtime errors (formula/scale/copy failures) are transient: keep a single
-	// element and remove it once the next action succeeds, instead of appending
-	// a new paragraph on every input change.
+	// Runtime errors (formula/scale/copy failures) are transient. Keep one
+	// element and track errors by source, so a successful action only clears
+	// its own error instead of hiding an unrelated formula or scale failure.
+	type RuntimeErrorSource = "copy" | "formula" | "scale";
+	const runtimeErrors = new Map<RuntimeErrorSource, string>();
 	let runtimeErrorEl: HTMLElement | null = null;
-	const setRuntimeError = (message: string | null) => {
-		if (message == null) {
+	const renderRuntimeErrors = () => {
+		if (runtimeErrors.size === 0) {
 			runtimeErrorEl?.remove();
 			runtimeErrorEl = null;
 			return;
 		}
 		if (runtimeErrorEl == null)
 			runtimeErrorEl = blockEl.createEl("p", {cls: "kf-error"});
-		runtimeErrorEl.setText(message);
+		runtimeErrorEl.setText(Array.from(runtimeErrors.values()).join("\n"));
+	};
+	const setRuntimeError = (source: RuntimeErrorSource, message: string | null) => {
+		if (message == null)
+			runtimeErrors.delete(source);
+		else
+			runtimeErrors.set(source, message);
+		renderRuntimeErrors();
 	};
 
 	const groups = groupSections(recipe.sections);
@@ -308,7 +317,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 			});
 			await navigator.clipboard.writeText(formatSectionsToMarkdown(visibleSections));
 
-			setRuntimeError(null);
+			setRuntimeError("copy", null);
 			announce("Recipe copied");
 			copyCmp.setButtonText("✅");
 			copyCmp.setDisabled(true);
@@ -319,7 +328,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 			}, 1000);
 		} catch (e) {
 			announce("Copy failed");
-			setRuntimeError("Copy failed: " + (e instanceof Error ? e.message : String(e)));
+			setRuntimeError("copy", "Copy failed: " + (e instanceof Error ? e.message : String(e)));
 		}
 	});
 
@@ -380,14 +389,14 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 					}
 					scaleCmp.setDisabled(true);
 
-					setRuntimeError(null);
+					setRuntimeError("scale", null);
 					applyScale(multBindings, scale.mult, decimals);
 
 					window.setTimeout(() => {
 						scaleCmp.setDisabled(false);
 					}, 1000);
 				} catch (e) {
-					setRuntimeError("Scale failed: " + (e instanceof Error ? e.message : String(e)));
+					setRuntimeError("scale", "Scale failed: " + (e instanceof Error ? e.message : String(e)));
 				}
 			});
 		}
@@ -431,10 +440,10 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 							vars[id] = nValue;
 							item.value = nValue;
 						}
-						setRuntimeError(null);
+						setRuntimeError("formula", null);
 						recalcCalcBindings(calcBindings, vars, decimals);
 					} catch (e) {
-						setRuntimeError("Formula error: " + (e instanceof Error ? e.message : String(e)));
+						setRuntimeError("formula", "Formula error: " + (e instanceof Error ? e.message : String(e)));
 					}
 				});
 			}
@@ -498,6 +507,6 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 	try {
 		recalcCalcBindings(calcBindings, vars, decimals);
 	} catch (e) {
-		setRuntimeError("Formula error: " + (e instanceof Error ? e.message : String(e)));
+		setRuntimeError("formula", "Formula error: " + (e instanceof Error ? e.message : String(e)));
 	}
 }
