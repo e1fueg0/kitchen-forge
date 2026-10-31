@@ -328,6 +328,16 @@ describe("prefillVars", () => {
 		expect(vars).toEqual({a: 10, b: 20});
 	});
 
+	it("coerces numeric string values to numbers", () => {
+		const vars: Vars = {};
+		const recipe = {
+			scales: [],
+			sections: [{name: "S", items: [{name: "A", id: "a", value: "800"}]}],
+		} as unknown as Recipe;
+		prefillVars(recipe, vars);
+		expect(vars.a).toBe(800);
+	});
+
 	it("treats value of 0 as a valid value (only null/undefined skipped)", () => {
 		const vars: Vars = {};
 		prefillVars(makeRecipe([{name: "zero", id: "z", value: 0}]), vars);

@@ -70,6 +70,10 @@ describe("roundToStep", () => {
 		expect(roundToStep(0.0001, 25, 1)).toBe(25);
 	});
 
+	it("keeps one step when rounding the step to 0 decimals would erase it", () => {
+		expect(roundToStep(0.4, 0.1, 0)).not.toBe(0);
+	});
+
 	it("keeps an exact zero as zero (no spurious floor)", () => {
 		expect(roundToStep(0, 1, 1)).toBe(0);
 		expect(roundToStep(0, 25, 1)).toBe(0);
