@@ -180,6 +180,23 @@ describe("workflow 1: id + calc", () => {
 		expect(getItemUnit(spices[0])).toBe("г");
 	});
 
+	it("trims item names and units in the UI and copied Markdown", async () => {
+		const block = render(`
+unit: г
+sections:
+  - name: S
+    items:
+      - name: "  Salt  "
+        value: 1
+        unit: "  g  "
+`);
+		const item = getSectionItems(block!, 0)[0]!;
+		expect(item.textContent?.startsWith("Salt: ")).toBe(true);
+		expect(getItemUnit(item)).toBe("g");
+		const copied = await copyRecipe(block!);
+		expect(copied).toContain("Salt: **1 g**");
+	});
+
 	it("recalculates all dependent calc items when an id input changes", () => {
 		const block = render(calcRecipe);
 		const ingredients = getSectionItems(block!, 0);

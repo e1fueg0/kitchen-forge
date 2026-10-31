@@ -136,12 +136,17 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 				reportError(el, `Item ${itemLabel} in section ${label} must have a non-empty string 'name'`);
 				return;
 			}
+			// Normalize the name so the UI and copied Markdown agree and no
+			// stray leading/trailing whitespace leaks into either.
+			(item as {name: string}).name = itemName.trim();
 
 			const rawUnit = (item as {unit?: unknown}).unit;
 			if (rawUnit != null && typeof rawUnit !== "string") {
 				reportError(el, `Item ${itemLabel} in section ${label} must have a string 'unit'`);
 				return;
 			}
+			if (typeof rawUnit === "string")
+				(item as {unit?: string}).unit = rawUnit.trim();
 
 			const rawCalc = (item as {calc?: unknown}).calc;
 			if (rawCalc != null && typeof rawCalc !== "string") {
