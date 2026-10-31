@@ -6,6 +6,7 @@ import {
 	applyScale,
 	CalcBinding,
 	findDuplicateId,
+	formatAmount,
 	formatSectionsToMarkdown,
 	groupSections,
 	isValidVariableName,
@@ -352,6 +353,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 			copyCmp.setDisabled(true);
 
 			window.setTimeout(() => {
+				if (!copyCmp.buttonEl.isConnected) return;
 				copyCmp.setButtonText(copyLabel);
 				copyCmp.setDisabled(false);
 			}, 1000);
@@ -409,6 +411,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 			const scaleCmp = new ButtonComponent(btnBlockEl);
 			const isSelected = scale === initialScale;
 			scaleCmp.setButtonText((isSelected ? SELECTED_PREFIX : SCALE_PREFIX) + scale.name);
+			scaleCmp.buttonEl.setAttribute("aria-pressed", String(isSelected));
 			scaleButtons.push({cmp: scaleCmp, scale});
 			scaleCmp.onClick(async () => {
 				scaleCmp.setDisabled(true);
@@ -422,9 +425,11 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 					for (const entry of scaleButtons) {
 						const prefix = entry.scale === scale ? SELECTED_PREFIX : SCALE_PREFIX;
 						entry.cmp.setButtonText(prefix + entry.scale.name);
+						entry.cmp.buttonEl.setAttribute("aria-pressed", String(entry.scale === scale));
 					}
 
 					window.setTimeout(() => {
+						if (!scaleCmp.buttonEl.isConnected) return;
 						scaleCmp.setDisabled(false);
 					}, 1000);
 				} catch (e) {
@@ -448,7 +453,7 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 				const valueEl = bEl.createSpan({text: ""});
 				calcBindings.push({expr: item.calc, el: valueEl, item: item});
 			} else if (!item.id) {
-				const valueEl = bEl.createSpan({text: `${(item.value)}`});
+				const valueEl = bEl.createSpan({text: formatAmount(item.value)});
 				multBindings.push({origValue: item.value ?? 0, el: valueEl, item: item});
 			} else {
 				const id = item.id;

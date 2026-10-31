@@ -171,6 +171,23 @@ describe("workflow 1: id + calc", () => {
 		expect(getItemValueText(spices[6])).toBe(String(round(801 * 15 / 1000, 2)));
 	});
 
+	it("shows non-finite formula results as an em dash in the UI and copy", async () => {
+		const block = render(`
+unit: г
+sections:
+  - name: S
+    items:
+      - {name: Infinity, calc: "1 / 0"}
+      - {name: Not a number, calc: "0 / 0"}
+`);
+		const items = getSectionItems(block!, 0);
+		expect(getItemValueText(items[0])).toBe("—");
+		expect(getItemValueText(items[1])).toBe("—");
+		const copied = await copyRecipe(block!);
+		expect(copied).toContain("Infinity: **— г**");
+		expect(copied).toContain("Not a number: **— г**");
+	});
+
 	it("uses the recipe-level unit (г) when item has no override", () => {
 		const block = render(calcRecipe);
 		const ingredients = getSectionItems(block!, 0);
@@ -315,6 +332,19 @@ describe("workflow 2: scales", () => {
 		expect(buttons[0]!.textContent?.startsWith("✅")).toBe(true);
 		expect(buttons[1]!.textContent?.startsWith("🎚")).toBe(true);
 		expect(buttons[2]!.textContent?.startsWith("🎚")).toBe(true);
+	});
+
+	it("exposes the selected scale through aria-pressed", () => {
+		const block = render(scaleRecipe);
+		const buttons = getScaleButtons(block!);
+		expect(buttons[0]!.getAttribute("aria-pressed")).toBe("true");
+		expect(buttons[1]!.getAttribute("aria-pressed")).toBe("false");
+
+		buttons[1]!.click();
+
+		const after = getScaleButtons(block!);
+		expect(after[0]!.getAttribute("aria-pressed")).toBe("false");
+		expect(after[1]!.getAttribute("aria-pressed")).toBe("true");
 	});
 
 	it("pre-selects the first scale in the list regardless of its mult", () => {

@@ -161,6 +161,23 @@ describe("formatSectionsToMarkdown", () => {
 			"__Ягодная база → конфитюрный вариант__\n\n 1. Смородина: **300 г**\n",
 		);
 	});
+
+	it("formats non-finite and missing amounts as an em dash", () => {
+		const sections: Section[] = [
+			{
+				name: "S",
+				items: [
+					{name: "infinity", value: Infinity, unit: "g"},
+					{name: "not a number", value: NaN, unit: "g"},
+					{name: "missing", unit: "g"},
+				],
+			},
+		];
+		const copied = formatSectionsToMarkdown(sections);
+		expect(copied).toContain("infinity: **— g**");
+		expect(copied).toContain("not a number: **— g**");
+		expect(copied).toContain("missing: **— g**");
+	});
 });
 
 describe("sectionDisplayName", () => {

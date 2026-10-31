@@ -184,11 +184,9 @@ export function formatSectionsToMarkdown(sections: Section[]): string {
 		}
 		let no = 1;
 		for (const item of section.items) {
-			// An id item can be empty until the user types a value. Copying
-			// "undefined" (or "NaN") into the recipe would be misleading.
-			const value = typeof item.value === "number" && Number.isFinite(item.value)
-				? `${item.value}`
-				: "—";
+			// An id item can be empty until the user types a value. Non-finite
+			// results (Infinity/NaN) cannot be copied meaningfully either.
+			const value = formatAmount(item.value);
 			const unit = typeof item.unit === "string" ? item.unit.trim() : "";
 			const amount = unit.length > 0 ? `${value} ${unit}` : value;
 			lines.push(` ${no++}. ${item.name}: **${amount}**`);
@@ -196,6 +194,11 @@ export function formatSectionsToMarkdown(sections: Section[]): string {
 		lines.push("");
 	}
 	return lines.join("\n");
+}
+
+// The UI and copied Markdown must agree on how an unusable amount is shown.
+export function formatAmount(value: unknown): string {
+	return typeof value === "number" && Number.isFinite(value) ? `${value}` : "—";
 }
 
 // Round a computed amount, honoring a per-item `round` step when present and
@@ -207,7 +210,7 @@ function roundForItem(value: number, item: Ingredient, decimals: number): number
 export function applyScale(bindings: MultBinding[], mult: number, decimals: number): void {
 	for (const binding of bindings) {
 		const calculated = roundForItem(binding.origValue * mult, binding.item, decimals);
-		binding.el.setText(`${calculated}`);
+		binding.el.setText(formatAmount(calculated));
 		binding.item.value = calculated;
 	}
 }
@@ -221,7 +224,7 @@ export function recalcCalcBindings(bindings: CalcBinding[], vars: Vars, decimals
 	for (const binding of bindings) {
 		try {
 			const calculated = roundForItem(evaluate(jsep(binding.expr), vars), binding.item, decimals);
-			binding.el.setText(`${calculated}`);
+			binding.el.setText(formatAmount(calculated));
 			binding.item.value = calculated;
 		} catch (e) {
 			// Do not leave a stale result on screen when its formula can no
