@@ -105,6 +105,14 @@ describe("evaluate", () => {
 		it("evaluates zero", () => {
 			expect(evaluate(parse("0"), {})).toBe(0);
 		});
+
+		it.each([
+			["boolean", "true"],
+			["string", "'abc'"],
+			["null", "null"],
+		] as const)("rejects a %s literal instead of coercing it", (_label, expr) => {
+			expect(() => evaluate(parse(expr), {})).toThrow(/Unsupported literal/);
+		});
 	});
 
 	describe("identifiers", () => {

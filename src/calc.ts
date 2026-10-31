@@ -50,8 +50,14 @@ export function roundToStep(value: number, step: number, decimals: number): numb
 export function evaluate(node: jsep.Expression, vars: Vars): number {
 	switch (node.type) {
 
-		case "Literal":
-			return Number((node as jsep.Literal).value);
+		case "Literal": {
+			const value = (node as jsep.Literal).value;
+			// Formulas are numeric. Silently coercing strings, booleans or
+			// null with Number() turned "'abc'" into NaN and "true" into 1.
+			if (typeof value !== "number" || !Number.isFinite(value))
+				throw new Error(`Unsupported literal: ${String(value)}`);
+			return value;
+		}
 
 		case "Identifier": {
 			const name = (node as jsep.Identifier).name;

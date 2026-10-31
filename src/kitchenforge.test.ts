@@ -1346,6 +1346,20 @@ sections:
 		}
 	});
 
+	it("reports a non-numeric literal in a formula", () => {
+		render(`
+unit: г
+sections:
+  - name: Section
+    items:
+      - name: Broken
+        calc: "'abc' + 1"
+`);
+		const err = errorEl();
+		expect(err).not.toBeNull();
+		expect(err!.textContent).toContain("Formula error: Unsupported literal: abc");
+	});
+
 	it("catches errors raised during a scale click and reports them with 'Scale failed:'", () => {
 		const block = render(scaleRecipe);
 		// Break setText on the first value span; applyScale will hit it during the click.
