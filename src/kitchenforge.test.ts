@@ -1210,6 +1210,25 @@ sections:
 		expect(err!.textContent).toContain("Section 'Broken' must have an 'items' array");
 	});
 
+	it("rejects an empty sections array", () => {
+		expect(render("unit: г\nsections: []\n")).toBeNull();
+		const err = errorEl();
+		expect(err).not.toBeNull();
+		expect(err!.textContent).toContain("Recipe must have at least one section");
+	});
+
+	it("rejects a section with no items", () => {
+		expect(render(`
+unit: г
+sections:
+  - name: Empty
+    items: []
+`)).toBeNull();
+		const err = errorEl();
+		expect(err).not.toBeNull();
+		expect(err!.textContent).toContain("Section 'Empty' must have at least one item");
+	});
+
 	it("reports an error for a non-string variant name", () => {
 		expect(render(`
 unit: г

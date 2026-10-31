@@ -95,6 +95,10 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		reportError(el, "Recipe must have a 'sections' array");
 		return;
 	}
+	if (recipe.sections.length === 0) {
+		reportError(el, "Recipe must have at least one section");
+		return;
+	}
 	for (let i = 0; i < recipe.sections.length; i++) {
 		const section = recipe.sections[i]!;
 		const label = section != null && typeof section.name === "string" && section.name.trim()
@@ -107,6 +111,10 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		}
 		if (!Array.isArray(section.items)) {
 			reportError(el, `Section ${label} must have an 'items' array`);
+			return;
+		}
+		if (section.items.length === 0) {
+			reportError(el, `Section ${label} must have at least one item`);
 			return;
 		}
 		// YAML is untyped: reject values that would crash name normalization,
