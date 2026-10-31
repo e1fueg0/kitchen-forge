@@ -56,3 +56,11 @@
 .kf-error {
 	color: var(--text-error);
 }
+
+.kf-input-missing {
+	border-color: var(--text-warning);
+}
+
+.kf-hint {
+	color: var(--text-muted);
+}

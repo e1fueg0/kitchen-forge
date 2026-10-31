@@ -57,6 +57,12 @@ beforeAll(() => {
 	) {
 		this.classList.add(...classes);
 	};
+	(HTMLElement.prototype as unknown as {removeClass: (...c: string[]) => void}).removeClass = function (
+		this: HTMLElement,
+		...classes: string[]
+	) {
+		this.classList.remove(...classes);
+	};
 });
 
 let container: HTMLElement;
@@ -2060,7 +2066,7 @@ sections:
 		expect(container.querySelectorAll(".kf-error").length).toBe(1);
 	});
 
-	it("clears a formula error after the formula becomes valid", () => {
+	it("clears the missing-value hint after the field is filled again", () => {
 		const block = render(`unit: g
 sections:
   - name: S
@@ -2072,10 +2078,11 @@ sections:
 		const input = getItemInput(getSectionItems(block, 0)[0])!;
 		input.value = "";
 		input.dispatchEvent(new Event("input"));
-		expect(container.querySelector(".kf-error")).not.toBeNull();
+		expect(container.querySelector(".kf-error")).toBeNull();
+		expect(container.querySelector(".kf-hint")).not.toBeNull();
 		input.value = "5";
 		input.dispatchEvent(new Event("input"));
-		expect(container.querySelector(".kf-error")).toBeNull();
+		expect(container.querySelector(".kf-hint")).toBeNull();
 		expect(getItemValueText(getSectionItems(block, 0)[1])).toBe("10");
 	});
 });
@@ -2160,7 +2167,7 @@ sections:
 });
 
 describe("empty number input", () => {
-	it("does not show 0 in formulas while the input is empty", () => {
+	it("shows a hint and an em dash instead of a formula error", () => {
 		const block = render(`unit: g
 sections:
   - name: S
@@ -2173,8 +2180,54 @@ sections:
 		input.value = "";
 		input.dispatchEvent(new Event("input"));
 		expect(input.value).toBe("");
-		expect(getItemValueText(getSectionItems(block, 0)[1])).toBe("");
-		expect(errorEl()?.textContent ?? "").toMatch(/Unknown variable: a/);
+		expect(errorEl()).toBeNull();
+		expect(container.querySelector(".kf-hint")?.textContent).toBe("Enter a value for “A”");
+		expect(input.classList.contains("kf-input-missing")).toBe(true);
+		expect(input.getAttribute("aria-invalid")).toBe("true");
+		expect(getItemValueText(getSectionItems(block, 0)[1])).toBe("—");
+	});
+
+	it("lists every empty field and removes the highlight when filled", () => {
+		const block = render(`unit: g
+sections:
+  - name: S
+    items:
+      - {name: Meat, id: meat, value: 100}
+      - {name: Fat, id: fat, value: 20}
+      - {name: Total, calc: "meat + fat"}
+`);
+		if (!block) throw new Error("block not rendered");
+		const meat = getItemInput(getSectionItems(block, 0)[0])!;
+		const fat = getItemInput(getSectionItems(block, 0)[1])!;
+		meat.value = "";
+		meat.dispatchEvent(new Event("input"));
+		fat.value = "";
+		fat.dispatchEvent(new Event("input"));
+		expect(container.querySelector(".kf-hint")?.textContent).toBe("Enter a value for “Meat”, “Fat”");
+		expect(meat.getAttribute("aria-invalid")).toBe("true");
+		expect(fat.getAttribute("aria-invalid")).toBe("true");
+		meat.value = "100";
+		meat.dispatchEvent(new Event("input"));
+		expect(container.querySelector(".kf-hint")?.textContent).toBe("Enter a value for “Fat”");
+		expect(meat.getAttribute("aria-invalid")).toBeNull();
+	});
+
+	it("still reports a real unknown variable as a formula error", () => {
+		const block = render(`unit: g
+sections:
+  - name: S
+    items:
+      - {name: A, id: a, value: 10}
+      - {name: Broken, calc: "missing * 2"}
+`);
+		if (!block) throw new Error("block not rendered");
+		expect(errorEl()?.textContent).toContain("Formula error: Unknown variable: missing");
+		const input = getItemInput(getSectionItems(block, 0)[0])!;
+		input.value = "";
+		input.dispatchEvent(new Event("input"));
+		// The id field is empty, but the broken formula is a separate problem.
+		expect(errorEl()?.textContent).toContain("Formula error: Unknown variable: missing");
+		expect(container.querySelector(".kf-hint")?.textContent).toBe("Enter a value for “A”");
 	});
 });
 

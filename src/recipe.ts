@@ -233,7 +233,8 @@ export function recalcCalcBindings(bindings: CalcBinding[], vars: Vars, decimals
 			binding.item.value = calculated;
 		} catch (e) {
 			// Do not leave a stale result on screen when its formula can no
-			// longer be evaluated (for example, an input was cleared).
+			// longer be evaluated (for example, it references an id that was
+			// never declared).
 			try {
 				binding.el.setText("");
 				binding.item.value = undefined;

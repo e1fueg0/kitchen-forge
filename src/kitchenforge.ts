@@ -313,6 +313,51 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		renderRuntimeErrors();
 	};
 
+	// An emptied id input is not a formula error: the recipe simply has no
+	// value yet. Track those fields separately so they get a calm hint and a
+	// highlighted input instead of a red "Unknown variable" message, which is
+	// reserved for ids a formula references but never declares.
+	const emptyIds = new Set<string>();
+	const inputById = new Map<string, {input: HTMLInputElement; name: string}>();
+	let missingHintEl: HTMLElement | null = null;
+	const renderMissingHint = () => {
+		if (emptyIds.size === 0) {
+			missingHintEl?.remove();
+			missingHintEl = null;
+			return;
+		}
+		const names = Array.from(emptyIds)
+			.map(id => `“${inputById.get(id)?.name ?? id}”`)
+			.join(", ");
+		if (missingHintEl == null)
+			missingHintEl = blockEl.createEl("p", {cls: "kf-hint"});
+		missingHintEl.setText(`Enter a value for ${names}`);
+	};
+	const setInputEmpty = (id: string, isEmpty: boolean) => {
+		const info = inputById.get(id);
+		if (isEmpty) {
+			emptyIds.add(id);
+			info?.input.addClass("kf-input-missing");
+			info?.input.setAttribute("aria-invalid", "true");
+		} else {
+			emptyIds.delete(id);
+			info?.input.removeClass("kf-input-missing");
+			info?.input.removeAttribute("aria-invalid");
+		}
+	};
+
+	// Re-evaluate every formula and refresh the transient messages. An empty
+	// field becomes NaN so dependent formulas render "—" instead of throwing.
+	const recalculate = () => {
+		setRuntimeError("formula", null);
+		try {
+			recalcCalcBindings(calcBindings, vars, decimals);
+		} catch (e) {
+			setRuntimeError("formula", "Formula error: " + (e instanceof Error ? e.message : String(e)));
+		}
+		renderMissingHint();
+	};
+
 	const groups = groupSections(recipe.sections);
 	const hasChoiceGroups = groups.some(group => group.kind === "choice");
 
@@ -465,24 +510,21 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 				input.inputEl.setAttribute("step", "any");
 				input.inputEl.setAttribute("aria-label", `Amount for ${item.name}`);
 				input.setValue(item.value != null ? `${item.value}` : "");
+				inputById.set(id, {input: input.inputEl, name: item.name});
 				input.onChange(value => {
-					try {
-						const nValue = parseNumericValue(value);
-						if (nValue == null) {
-							// An empty (or otherwise invalid) input has no
-							// value at all; treating it as 0 would silently
-							// produce wrong formula results.
-							delete vars[id];
-							item.value = undefined;
-						} else {
-							vars[id] = nValue;
-							item.value = nValue;
-						}
-						setRuntimeError("formula", null);
-						recalcCalcBindings(calcBindings, vars, decimals);
-					} catch (e) {
-						setRuntimeError("formula", "Formula error: " + (e instanceof Error ? e.message : String(e)));
+					const nValue = parseNumericValue(value);
+					if (nValue == null) {
+						// Keep the id as NaN so formulas still run and render
+						// "—", and flag the field as needing a value instead of
+						// reporting a formula error.
+						vars[id] = NaN;
+						item.value = undefined;
+					} else {
+						vars[id] = nValue;
+						item.value = nValue;
 					}
+					setInputEmpty(id, nValue == null);
+					recalculate();
 				});
 			}
 
@@ -543,9 +585,5 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		applyScale(multBindings, initialScaleMult, decimals);
 
 	// Evaluate all calc bindings once everything is wired up.
-	try {
-		recalcCalcBindings(calcBindings, vars, decimals);
-	} catch (e) {
-		setRuntimeError("formula", "Formula error: " + (e instanceof Error ? e.message : String(e)));
-	}
+	recalculate();
 }
