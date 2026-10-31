@@ -1264,6 +1264,47 @@ sections:
 		expect(err!.textContent).toContain("Item 'A' in section 'Section' must have a string 'id'");
 	});
 
+	it("rejects a plain item without a value", () => {
+		expect(render(`
+unit: г
+sections:
+  - name: Broken
+    items:
+      - name: A
+`)).toBeNull();
+		const err = errorEl();
+		expect(err).not.toBeNull();
+		expect(err!.textContent).toContain("Item 'A' in section 'Broken' must have a numeric 'value'");
+	});
+
+	it("rejects a plain item with a null value", () => {
+		expect(render(`
+unit: г
+sections:
+  - name: Broken
+    items:
+      - name: A
+        value: null
+`)).toBeNull();
+		const err = errorEl();
+		expect(err).not.toBeNull();
+		expect(err!.textContent).toContain("Item 'A' in section 'Broken' must have a numeric 'value'");
+	});
+
+	it("rejects an id item without a value", () => {
+		expect(render(`
+unit: г
+sections:
+  - name: Broken
+    items:
+      - name: A
+        id: a
+`)).toBeNull();
+		const err = errorEl();
+		expect(err).not.toBeNull();
+		expect(err!.textContent).toContain("Item 'A' in section 'Broken' must have a numeric 'value'");
+	});
+
 	it("catches clipboard failures from the copy button and reports them", async () => {
 		const block = render(calcRecipe);
 		const writeText = vi.spyOn(navigator.clipboard, "writeText")

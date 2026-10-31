@@ -341,12 +341,14 @@ sections:
 sections:
   - name: S
     items:
-      - {name: A, id: a}
+      - {name: A, id: a, value: 10}
       - {name: B, calc: "a * 2"}
 `);
 		if (!block) throw new Error("block not rendered");
-		expect(container.querySelector(".kf-error")).not.toBeNull();
 		const input = inputFor(items(block, 0)[0])!;
+		input.value = "";
+		input.dispatchEvent(new Event("input"));
+		expect(container.querySelector(".kf-error")).not.toBeNull();
 		input.value = "5";
 		input.dispatchEvent(new Event("input"));
 		expect(container.querySelector(".kf-error")).toBeNull();
@@ -425,21 +427,15 @@ sections:
 		expectIdHandled(block, expected);
 	});
 
-	it("does not resolve an id without a value through Object.prototype", () => {
+	it("does not resolve an id through Object.prototype", () => {
 		const block = render(`unit: g
 sections:
   - name: S
     items:
-      - {name: A, id: "constructor"}
+      - {name: A, id: "constructor", value: 10}
       - {name: B, calc: "constructor * 2"}
 `);
-		const err = errorEl();
-		if (err) {
-			// A clear validation error or a normal "unknown variable" is fine.
-			expect(err.textContent ?? "").toMatch(/\bid\b|Unknown variable/i);
-		} else {
-			expect(block?.textContent ?? "").not.toContain("NaN");
-		}
+		expect(valueText(block ? items(block, 0)[1] : undefined)).toBe("20");
 	});
 });
 
@@ -626,9 +622,12 @@ describe("finding 14: copy of an id item without a value", () => {
 sections:
   - name: S
     items:
-      - {name: A, id: a}
+      - {name: A, id: a, value: 1}
 `);
 		if (!block) throw new Error("block not rendered");
+		const input = inputFor(items(block, 0)[0])!;
+		input.value = "";
+		input.dispatchEvent(new Event("input"));
 		const copied = await copyRecipe(block);
 		expect(copied).not.toContain("undefined");
 		expect(copied).toContain("A: **— g**");

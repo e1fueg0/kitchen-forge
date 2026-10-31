@@ -180,21 +180,24 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 				(item as {id?: string}).id = id.length > 0 ? id : undefined;
 			}
 
+			const normalizedId = (item as {id?: string}).id;
+			const normalizedCalc = (item as {calc?: string}).calc;
+			if (normalizedId != null && normalizedCalc != null) {
+				reportError(el, `Item ${itemLabel} in section ${label} cannot have both 'id' and 'calc'`);
+				return;
+			}
+
 			const rawValue = (item as {value?: unknown}).value;
-			if (rawValue != null) {
+			// Every non-computed item needs an amount. A missing `value` used
+			// to render as "undefined"/"null", and scaling treated it as 0.
+			// `calc` items may omit `value`; when present it is still checked.
+			if (normalizedCalc == null || rawValue != null) {
 				const value = parseNumericValue(rawValue);
 				if (value == null) {
 					reportError(el, `Item ${itemLabel} in section ${label} must have a numeric 'value'`);
 					return;
 				}
 				(item as {value?: number}).value = value;
-			}
-
-			const normalizedId = (item as {id?: string}).id;
-			const normalizedCalc = (item as {calc?: string}).calc;
-			if (normalizedId != null && normalizedCalc != null) {
-				reportError(el, `Item ${itemLabel} in section ${label} cannot have both 'id' and 'calc'`);
-				return;
 			}
 		}
 	}
