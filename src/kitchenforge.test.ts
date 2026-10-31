@@ -334,6 +334,22 @@ describe("workflow 2: scales", () => {
 		expect(buttons[2]!.textContent?.startsWith("🎚")).toBe(true);
 	});
 
+	it("rounds authored values on the initial render when scales are configured", () => {
+		const block = render(`
+unit: г
+decimals: 2
+scales:
+  - name: Full
+    mult: 1
+sections:
+  - name: S
+    items:
+      - name: A
+        value: 12.345
+`);
+		expect(getItemValueText(getSectionItems(block!, 0)[0])).toBe("12.35");
+	});
+
 	it("exposes the selected scale through aria-pressed", () => {
 		const block = render(scaleRecipe);
 		const buttons = getScaleButtons(block!);
