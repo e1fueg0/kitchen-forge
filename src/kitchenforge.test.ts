@@ -1354,12 +1354,18 @@ sections:
 			throw new Error("synthetic");
 		});
 
-		const half = getScaleButtons(block!).find(b => b.textContent?.includes("Половина"))!;
+		const buttons = getScaleButtons(block!);
+		const full = buttons.find(b => b.textContent?.includes("Полный"))!;
+		const half = buttons.find(b => b.textContent?.includes("Половина"))!;
 		half.click();
 
 		const err = errorEl();
 		expect(err).not.toBeNull();
 		expect(err!.textContent).toContain("Scale failed: synthetic");
+		// The failed scale was not applied, so the checkmark stays on Full.
+		expect(full.textContent?.startsWith("✅")).toBe(true);
+		expect(half.textContent?.startsWith("🎚")).toBe(true);
+		expect(half.disabled).toBe(false);
 	});
 
 	it("catches errors raised by recalc during input change and reports them with 'Formula error:'", () => {

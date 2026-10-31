@@ -382,20 +382,24 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 			scaleCmp.setButtonText((isSelected ? SELECTED_PREFIX : SCALE_PREFIX) + scale.name);
 			scaleButtons.push({cmp: scaleCmp, scale});
 			scaleCmp.onClick(async () => {
+				scaleCmp.setDisabled(true);
 				try {
+					setRuntimeError("scale", null);
+					applyScale(multBindings, scale.mult, decimals);
+
+					// Move the checkmark only after the scale was applied: a
+					// failed click must leave the selection on the scale whose
+					// values are still on screen.
 					for (const entry of scaleButtons) {
 						const prefix = entry.scale === scale ? SELECTED_PREFIX : SCALE_PREFIX;
 						entry.cmp.setButtonText(prefix + entry.scale.name);
 					}
-					scaleCmp.setDisabled(true);
-
-					setRuntimeError("scale", null);
-					applyScale(multBindings, scale.mult, decimals);
 
 					window.setTimeout(() => {
 						scaleCmp.setDisabled(false);
 					}, 1000);
 				} catch (e) {
+					scaleCmp.setDisabled(false);
 					setRuntimeError("scale", "Scale failed: " + (e instanceof Error ? e.message : String(e)));
 				}
 			});
