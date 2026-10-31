@@ -53,6 +53,7 @@ function normalizeScales(value: unknown): Scale[] | string {
 		return "Recipe 'scales' must be an array";
 
 	const scales: Scale[] = [];
+	const seenNames = new Map<string, number>();
 	for (let i = 0; i < value.length; i++) {
 		const entry: unknown = value[i];
 		const label = `Recipe 'scales' entry #${i + 1}`;
@@ -73,7 +74,13 @@ function normalizeScales(value: unknown): Scale[] | string {
 			return `${label}${suffix} must have a positive numeric 'mult'`;
 		}
 
-		scales.push({name: name.length > 0 ? name : defaultScaleName(mult), mult});
+		const finalName = name.length > 0 ? name : defaultScaleName(mult);
+		const firstIndex = seenNames.get(finalName);
+		if (firstIndex != null) {
+			return `${label} has duplicate name '${finalName}' (entry #${firstIndex + 1} already uses it)`;
+		}
+		seenNames.set(finalName, i);
+		scales.push({name: finalName, mult});
 	}
 	return scales;
 }
@@ -235,6 +242,15 @@ export function processKitchenForgeBlock(source: string, el: HTMLElement, _: Mar
 		return;
 	}
 	const scales = normalizedScales;
+	// If no user scale is 1:1, an implicit scale named ORIGINAL_SCALE_NAME is
+	// prepended. Reject a user scale with that name up front, otherwise the
+	// toolbar would show two identical buttons.
+	if (scales.length > 0
+		&& !scales.some(scale => scale.mult === 1)
+		&& scales.some(scale => scale.name === ORIGINAL_SCALE_NAME)) {
+		reportError(el, `Scale name '${ORIGINAL_SCALE_NAME}' is reserved for the implicit 1:1 scale`);
+		return;
+	}
 
 	let decimals = recipe.decimals;
 	if (decimals == null) {

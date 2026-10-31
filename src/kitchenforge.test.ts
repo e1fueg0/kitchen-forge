@@ -522,6 +522,59 @@ sections:
 		expect(halfText.startsWith("🎚")).toBe(true);
 		expect(fullText.startsWith("✅")).toBe(true);
 	});
+
+	it("rejects duplicate explicit scale names", () => {
+		expect(render(`
+unit: г
+scales:
+  - name: Half
+    mult: .5
+  - name: Half
+    mult: .25
+sections:
+  - name: S
+    items:
+      - name: A
+        value: 100
+`)).toBeNull();
+		const err = errorEl();
+		expect(err).not.toBeNull();
+		expect(err!.textContent).toContain("duplicate name 'Half'");
+	});
+
+	it("rejects duplicate generated scale names", () => {
+		expect(render(`
+unit: г
+scales:
+  - mult: 2
+  - mult: 2
+sections:
+  - name: S
+    items:
+      - name: A
+        value: 100
+`)).toBeNull();
+		const err = errorEl();
+		expect(err).not.toBeNull();
+		expect(err!.textContent).toContain("duplicate name '×2'");
+	});
+
+	it("rejects a user scale named like the implicit 1:1 scale", () => {
+		expect(render(`
+unit: г
+scales:
+  - name: "💯 1:1"
+    mult: 2
+sections:
+  - name: S
+    items:
+      - name: A
+        value: 100
+`)).toBeNull();
+		const err = errorEl();
+		expect(err).not.toBeNull();
+		expect(err!.textContent).toContain("reserved for the implicit 1:1 scale");
+	});
 });
 
 const roundRecipe = `
